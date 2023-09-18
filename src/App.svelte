@@ -99,17 +99,16 @@
     width: 100%;
   }
 
-  .sideScroll .post {
-    min-width: 70vw;
-  }
-
   .sectionHeader {
     color: white;
+    width: 75%;
     border-radius: 0 1em 1em 0;
     position: relative;
     margin-top: 1em;
     margin-bottom: 1em;
-    padding: 0.25rem;
+    padding: 0.3rem;
+    max-width: 20em;
+    font-size: min(1.5em, 4.5vw);
   }
 
   .red {

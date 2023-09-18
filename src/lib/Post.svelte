@@ -20,7 +20,8 @@
   .post {
     position: relative;
     z-index: 10;
-    min-width: 70vw;
+    min-width: min(70vw, 20em);
+    max-width: min(70vw, 20em);
     height: min-content;
     margin: 1em auto;
   }

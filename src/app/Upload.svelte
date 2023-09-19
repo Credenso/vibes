@@ -1,5 +1,6 @@
 <script>
 	import { postDictionary } from '../lib/stores'
+    import { uploadSong } from '../lib/ipfs'
 	import { preload } from '../lib/util'
     
 	import Post from '../app/Post.svelte'
@@ -9,24 +10,20 @@
 	export let color = "red";
 </script>
 
-<div class="sectionHeader {color}">
-	<b>{title}</b>
-</div>
-<div class="sideScroll">
-  {#if posts}
-	{#each posts as event (event.id)}
-      {#await preload($postDictionary[event.content]?.image)}
-      {:then image}
-		<Post 
-			artist="BlueShirtGuy" 
-			name="{$postDictionary[event.content]?.name}" 
- 			image="{image}"
- 			description="{$postDictionary[event.content]?.description}"
- 		/>
-      {/await}
-	{/each}
-  {/if}
-</div>
+<form on:submit={uploadSong}>
+    <h2>Song</h2>
+    <input type="file" id="formSong" name="song" />
+    <h2>Icon</h2>
+    <input type="file" id="formPic" name="icon" />
+    <h2>Song Name</h2>
+    <input type="text" id="formName" name="name" />
+    <h2>Song Desc</h2>
+    <input type="text" id="formDesc" name="name" />
+    <br/>
+    <br/>
+    <button type="submit">Upload</button>
+</form>
+
 
 <style>
   .sideScroll {

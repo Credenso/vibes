@@ -59,6 +59,11 @@ const genericEvent = (
 };
 
 // TODO: Refactor this to accord to NIPs
+// Likes are Kind 7 (NIP-25)
+// Profile is extended by NIP-39
+// Auth is important! NIP-42
+// Kind 30078 for Vibes data (NIP-78)
+// Kind 1063 for linked content/files (NIP-94)
 export enum Kind {
     "profile" = 0,
     "post" = 1,

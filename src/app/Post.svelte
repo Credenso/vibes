@@ -6,13 +6,13 @@
 </script>
 
 <article class="post px-5 rounded-md">
-  <div class="border-red relative h-full w-full overflow-hidden rounded-md border-2 bg-white pb-2">
+  <div class="box border-red relative h-full w-full overflow-hidden rounded-md border-2 bg-white pb-2">
     <div class="relative aspect-square w-full overflow-hidden">
       <img src="{ image }" alt="vinyl" class="aspect-square object-cover">
     </div>
     <div class="px-3 pt-2 pb-1 font-bold">{ name }</div>
     <div class="px-3 pb-2 italic leading-none">{ artist }</div>
-    <div class="font-secondary px-3 leading-4">{ description }</div>
+    <div class="desc font-secondary px-3 leading-4">{ description }</div>
   </div>
 </article> 
 
@@ -22,8 +22,19 @@
     z-index: 10;
     min-width: min(70vw, 20em);
     max-width: min(70vw, 20em);
-    height: min-content;
     margin: 1em auto;
+  }
+
+  .box {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .desc {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
   }
 
   .post:hover {

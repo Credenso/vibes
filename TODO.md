@@ -1,9 +1,12 @@
 # List of things I want to do here
 - [x] Plug in the backend
 - [x] Add profile modal
-- [ ] finish upload
-- [ ] Make it a PWA
+- [x] finish upload
+- [ ] add profile support
+- [ ] add music player
+- [ ] implement searching
 - [ ] add Collections support
 - [ ] manually configure relay and ipfs address
 - [ ] fix nostr compatibility
+- [ ] Make it a PWA
 - [ ] idk

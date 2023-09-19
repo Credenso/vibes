@@ -5,6 +5,7 @@
   import Profile from './app/Profile.svelte'
   import Post from './app/Post.svelte'
   import Search from './app/Search.svelte'
+  import Upload from './app/Upload.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
 
   // Utilities
@@ -12,8 +13,10 @@
   import { getPosts } from './lib/nostr'
   import { getSong } from './lib/ipfs'
   import { postDictionary } from './lib/stores.js'
+  import { quip } from './lib/util'
 
   // State Variables
+  let loadingMessage = quip()
   let openMenu = false
   let search = ""
   let page = "main"
@@ -47,45 +50,43 @@
   // This waits until the content is loaded before it displays
   window.onload = () => {
     window.setTimeout(() => {
-      document.querySelector('section').classList.remove('is-preload');
-    }, 100);
+      loadingMessage = null;
+      document.querySelector('section.is-preload').classList.remove('is-preload');
+    }, 500);
   }
 
   const navTo = (pageName) => {
     page = pageName;
     openMenu = false;
-
-    console.log(page);
   }
 </script>
+
+<Navbar bind:page />
 
 <Sidebar bind:open={openMenu}>
   <b>Menu</b>
   <button on:click={() => navTo("main")}>Home</button>
   <button on:click={() => navTo("upload")}>Upload</button>
 </Sidebar>
-<Navbar bind:page />
+
 <Profile>
   <b>Profile Information</b>
   <p>Set/generate your public key/metadata here</p>
 </Profile>
+
 <main>
   <div class="redBorder">
     <div class="orangeBorder">
       <div class="blueBorder">
+        {#if loadingMessage }
+        <section>
+          <p>{loadingMessage}</p>
+        </section>
+        {/if}
         <section class="is-preload">
           {#if page === "main"}
-            {#await results}
-              <p>Loading...</p>
-            {:then}
-            <Sidescroll 
-              title="Recent Shares."
-              color="red"
-              posts={postEvents}
-              />
-            {/await}
           <div class="sectionHeader orange">
-            <b>What's Trending.</b>
+            <b>Your collections.</b>
           </div>
           <div class="sideScroll">
             <Post 
@@ -107,18 +108,22 @@
               description="Analog Dance Music for the kids who never got to grow up with disco"
               />
           </div>
+          <Sidescroll 
+            title="Recently posted."
+            color="red"
+            posts={postEvents}
+            />
           {:else if page === "upload"}
             <p>Rendering upload page</p>
-          {/if}
-          {#if !search }
-          {:else}
-          <b>Searching for {search}</b>
+            <Upload />
+          {:else if page === "search"}
+            <p>Searching for {search}</p>
           {/if}
         </section>
       </div>
     </div>
   </div>
-  <Search bind:search />
+  <Search bind:search bind:page />
   <footer><b>&copy;redenso</b></footer>
 </main>
 

@@ -2,6 +2,7 @@
 	import { clickOutside } from '../lib/util.ts'
 
 	export let search;
+	export let page;
 	let open = false
 
 	// If the searchBar is clicked, ignore.
@@ -16,6 +17,7 @@
 			open = true
 		} else {
 			console.log('querying search')
+			page = "search"
 		}
 	}
 </script>

@@ -1,4 +1,9 @@
 # List of things I want to do here
-- Plug in the backend
-- Make it a PWA
-- idk, lots!
+- [x] Plug in the backend
+- [x] Add profile modal
+- [ ] finish upload
+- [ ] Make it a PWA
+- [ ] add Collections support
+- [ ] manually configure relay and ipfs address
+- [ ] fix nostr compatibility
+- [ ] idk

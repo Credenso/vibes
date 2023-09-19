@@ -1,36 +1,91 @@
 <script>
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Sidebar from './lib/Sidebar.svelte'
-  import Navbar from './lib/Navbar.svelte'
-  import Profile from './lib/Profile.svelte'
-  import Post from './lib/Post.svelte'
-  import Search from './lib/Search.svelte'
+  // Components
+  import Sidebar from './app/Sidebar.svelte'
+  import Navbar from './app/Navbar.svelte'
+  import Profile from './app/Profile.svelte'
+  import Post from './app/Post.svelte'
+  import Search from './app/Search.svelte'
+  import Sidescroll from './app/Sidescroll.svelte'
 
-  let open = false
+  // Utilities
+  import { onMount, onDestroy } from 'svelte'
+  import { getPosts } from './lib/nostr'
+  import { getSong } from './lib/ipfs'
+  import { postDictionary } from './lib/stores.js'
 
+  // State Variables
+  let openMenu = false
+  let search = ""
+  let page = "main"
+  let postEvents = []
+  let results = undefined
+
+  console.log('items', Object.keys($postDictionary))
+
+  // The first thing we do in this app is to load all nostr
+  // events and associated data into memory so they can be
+  // processed without further latency
+  onMount(async () => {
+    postEvents = await getPosts();
+    results = Promise.all(postEvents.map(async (event) => {
+      // If we have already registered this event...
+      if (event.content in $postDictionary) {
+        // Then we skip it.
+        return null
+      } else {
+        // Otherwise - we get the data from IPFS,
+        const eventData = await getSong(event.content);
+        // And save it to the postDictionary
+        $postDictionary[event.content] = eventData;
+        return eventData
+      }
+    }))
+
+    console.log('results', await results)
+  });
+
+  // This waits until the content is loaded before it displays
   window.onload = () => {
     window.setTimeout(() => {
       document.querySelector('section').classList.remove('is-preload');
     }, 100);
   }
+
+  const navTo = (pageName) => {
+    page = pageName;
+    openMenu = false;
+
+    console.log(page);
+  }
 </script>
 
-<Sidebar bind:open>
-  <p>Menu</p>
+<Sidebar bind:open={openMenu}>
+  <b>Menu</b>
+  <button on:click={() => navTo("main")}>Home</button>
+  <button on:click={() => navTo("upload")}>Upload</button>
 </Sidebar>
-
-<Navbar/>
-
-<Profile/>
-
+<Navbar bind:page />
+<Profile>
+  <b>Profile Information</b>
+  <p>Set/generate your public key/metadata here</p>
+</Profile>
 <main>
   <div class="redBorder">
     <div class="orangeBorder">
       <div class="blueBorder">
         <section class="is-preload">
-          <div class="sectionHeader red">
-            <b>Recent Shares.</b>
+          {#if page === "main"}
+            {#await results}
+              <p>Loading...</p>
+            {:then}
+            <Sidescroll 
+              title="Recent Shares."
+              color="red"
+              posts={postEvents}
+              />
+            {/await}
+          <div class="sectionHeader orange">
+            <b>What's Trending.</b>
           </div>
           <div class="sideScroll">
             <Post 
@@ -45,18 +100,6 @@
               image="tpab.png"
               description="If anyone tells you that rap isn't art, send them this."
               />
-          </div>
-          <div class="sectionHeader orange">
-            <b>What's Trending.</b>
-          </div>
-          <div class="sideScroll">
-
-            <Post 
-              artist="Kendrick Lamar" 
-              name="To Pimp A Butterfly" 
-              image="tpab.png"
-              description="If anyone tells you that rap isn't art, send them this."
-              />
             <Post 
               artist="Daft Punk" 
               name="Random Access Memories (10th Anniversary Edition)" 
@@ -64,12 +107,19 @@
               description="Analog Dance Music for the kids who never got to grow up with disco"
               />
           </div>
+          {:else if page === "upload"}
+            <p>Rendering upload page</p>
+          {/if}
+          {#if !search }
+          {:else}
+          <b>Searching for {search}</b>
+          {/if}
         </section>
       </div>
     </div>
   </div>
-  <Search />
-  <footer>&copy;redenso</footer>
+  <Search bind:search />
+  <footer><b>&copy;redenso</b></footer>
 </main>
 
 <style>
@@ -93,10 +143,16 @@
     transition: none;
   }
 
+
   .sideScroll {
     display: flex;
     overflow-x: scroll;
+    scrollbar-width: none;
     width: 100%;
+  }
+
+  sideScroll::-webkit-scrollbar{
+    display: none;
   }
 
   .sectionHeader {

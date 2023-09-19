@@ -1,5 +1,9 @@
+<script>
+  export let page;
+</script>
+
 <nav>
-  <a href="#"><img src='/vibes_logo.png' alt="Vibes" id="navLogo"></a>
+  <button on:click={() => page = "main"}><img src='/vibes_logo.svg' alt="Vibes" id="navLogo"></button>
 </nav>
 
 <style>

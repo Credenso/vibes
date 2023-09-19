@@ -1,4 +1,4 @@
-import './app.css'
+import './main.css'
 import './tailwind.min.css'
 import App from './App.svelte'
 

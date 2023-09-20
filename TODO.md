@@ -2,11 +2,12 @@
 - [x] Plug in the backend
 - [x] Add profile modal
 - [x] finish upload
+- [x] Make it a PWA
 - [ ] add profile support
 - [ ] add music player
 - [ ] implement searching
 - [ ] add Collections support
 - [ ] manually configure relay and ipfs address
 - [ ] fix nostr compatibility
-- [ ] Make it a PWA
+- [ ] Allow for offline collections - listening & download
 - [ ] idk

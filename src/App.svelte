@@ -6,6 +6,7 @@
   import Post from './app/Post.svelte'
   import Search from './app/Search.svelte'
   import Upload from './app/Upload.svelte'
+  import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
 
   // Utilities
@@ -13,17 +14,14 @@
   import { getPosts } from './lib/nostr'
   import { getSong } from './lib/ipfs'
   import { postDictionary } from './lib/stores.js'
-  import { quip } from './lib/util'
 
   // State Variables
-  let loadingMessage = quip()
+  let loading = true
   let openMenu = false
   let search = ""
   let page = "main"
   let postEvents = []
   let results = undefined
-
-  console.log('items', Object.keys($postDictionary))
 
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
@@ -50,9 +48,11 @@
   // This waits until the content is loaded before it displays
   window.onload = () => {
     window.setTimeout(() => {
-      loadingMessage = null;
+      loading = false;
       document.querySelector('section.is-preload').classList.remove('is-preload');
-    }, 500);
+      // A higher number hides the time it takes to load API data
+      // too much?
+    }, 4000);
   }
 
   const navTo = (pageName) => {
@@ -78,10 +78,8 @@
   <div class="redBorder">
     <div class="orangeBorder">
       <div class="blueBorder">
-        {#if loadingMessage }
-        <section>
-          <p>{loadingMessage}</p>
-        </section>
+        {#if loading }
+          <Loading />
         {/if}
         <section class="is-preload">
           {#if page === "main"}

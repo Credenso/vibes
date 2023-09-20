@@ -30,12 +30,3 @@ export function clickOutside(element, callbackFunction) {
         }
     }
 }
-
-export const quip = () => {
-    const quips = [
-        "Modulating harmful frequencies...",
-        "Rasterizing negative energy...",
-        "Aligning qubits..."
-    ]
-    return quips[Math.floor(Math.random() * quips.length)]
-}

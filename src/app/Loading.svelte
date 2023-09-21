@@ -4,8 +4,10 @@
 			"Modulating harmful frequencies...",
 			"Rasterizing negative energy...",
 			"Aligning qubits...",
+			"Auto-tuning Kumbaya...",
 			"Harmonizing overtones...",
 			"Sending good vibes to the L1 cache...",
+			"Searching for post-hardcore folkstep...",
 			"Bootstrapping harmonic oscillator...",
 			"Collapsing wave equation...",
 			"Binauralizing beats..."
@@ -38,15 +40,17 @@
 		align-items: center;
 		justify-content: center;
 		width: 100vw;
-		height: 80vh;
+		height: 80%;
 		padding: 5em;
 	}
 	
 	.loadingVinyl {
+		width: 15em;
 		animation: spin 1s infinite;
 	}
 
 	.quip {
+		margin-top: 1em;
 		height: 5em;
 		font-size: 1.5em;
 	}

@@ -8,41 +8,77 @@
   import Upload from './app/Upload.svelte'
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
+  import Modal from './app/Modal.svelte'
 
   // Utilities
   import { onMount, onDestroy } from 'svelte'
-  import { getPosts } from './lib/nostr'
+  import { 
+    initRelay,
+    RELAY_URL,
+    getPosts,
+    getUsers,
+    getEvents,
+    publishEvent
+  } from './lib/nostr'
   import { getSong } from './lib/ipfs'
-  import { postDictionary } from './lib/stores.js'
+  import { 
+    postDictionary,
+    userDictionary,
+    activePost,
+    relay
+  } from './lib/stores.js'
 
   // State Variables
   let loading = true
   let openMenu = false
   let search = ""
   let page = "main"
-  let postEvents = []
+  let events = []
   let results = undefined
+
+  // User Variables
+  let keys = {
+    publicKey: undefined,
+    privateKey: undefined
+  }
+
+  let profile = {};
+
+  activePost.subscribe((post) => {
+    console.log('active post is...', post)
+  })
 
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
   // processed without further latency
   onMount(async () => {
-    postEvents = await getPosts();
-    results = Promise.all(postEvents.map(async (event) => {
-      // If we have already registered this event...
-      if (event.content in $postDictionary) {
-        // Then we skip it.
-        return null
-      } else {
-        // Otherwise - we get the data from IPFS,
+    $relay = await initRelay(RELAY_URL)
+    events = await getEvents($relay, [{ kinds: [0, 1] }]);
+
+    // I don't think we need this value for anything,
+    // but we can await it.
+    results = Promise.all(events.map(async (event) => {
+      // If this event is a "post"...
+      if (event.kind === 1) {
+        // Then we get the data from IPFS,
         const eventData = await getSong(event.content);
-        // And save it to the postDictionary
-        $postDictionary[event.content] = eventData;
+        // And save it to the postDictionary with the event
+        $postDictionary[event.content] = {...eventData, event};
         return eventData
+
+      // If it's a user profile...
+      } else if (event.kind === 0) {
+        //let tags = event.tags.reduce((object, tag) => {...object, [tag[0]]: tag[1] }, {})
+        let content = JSON.parse(event.content);
+        $userDictionary[event.pubkey] = content;
+
+        if (event.pubkey === keys.publicKey) {
+          profile = content
+        }
+
+        return {...content, "pubkey": event.pubkey };
       }
     }))
-
-    console.log('results', await results)
   });
 
   // This waits until the content is loaded before it displays
@@ -56,6 +92,7 @@
   }
 
   const navTo = (pageName) => {
+    console.log('navigating to', pageName)
     page = pageName;
     openMenu = false;
   }
@@ -69,51 +106,25 @@
   <button on:click={() => navTo("upload")}>Upload</button>
 </Sidebar>
 
-<Profile>
-  <b>Profile Information</b>
-  <p>Set/generate your public key/metadata here</p>
-</Profile>
+<Profile bind:keys bind:profile />
 
 <main>
   <div class="redBorder">
     <div class="orangeBorder">
       <div class="blueBorder">
-        {#if loading }
+        {#if loading}
           <Loading />
         {/if}
         <section class="is-preload">
           {#if page === "main"}
-          <div class="sectionHeader orange">
-            <b>Your collections.</b>
-          </div>
-          <div class="sideScroll">
-            <Post 
-              artist="Lil Yachty" 
-              name="Let's Start Here." 
-              image="lets_start_here.jpg"
-              description="This is what happens when you listen to your parents' music."
-              />
-            <Post 
-              artist="Kendrick Lamar" 
-              name="To Pimp A Butterfly" 
-              image="tpab.png"
-              description="If anyone tells you that rap isn't art, send them this."
-              />
-            <Post 
-              artist="Daft Punk" 
-              name="Random Access Memories (10th Anniversary Edition)" 
-              image="ram10.jpg"
-              description="Analog Dance Music for the kids who never got to grow up with disco"
-              />
-          </div>
+          <Modal />
           <Sidescroll 
             title="Recently posted."
             color="red"
-            posts={postEvents}
+            posts={events.filter(e => e.kind === 1).reverse()}
             />
           {:else if page === "upload"}
-            <p>Rendering upload page</p>
-            <Upload />
+            <Upload bind:keys />
           {:else if page === "search"}
             <p>Searching for {search}</p>
           {/if}
@@ -127,7 +138,7 @@
 
 <style>
   main {
-    height: 90vh;
+    height: 92vh;
     overflow-y: scroll;
     overflow-x: hidden;
   }
@@ -205,7 +216,7 @@
     padding: 0;
     border: 22px solid #de5a5a;
     border-bottom-width: 3em;
-    margin-bottom: -2em;
+    margin-bottom: -2.2em;
   }
 
   footer {

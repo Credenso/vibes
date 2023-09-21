@@ -31,6 +31,7 @@ const genericEvent = (
     private_key: string,
     tags: string[][]
 ) => {
+    console.log("details",kind,content,public_key,private_key,tags)
     const unsignedEvent: UnsignedEvent<number> = {
         kind: kind,
         pubkey: public_key,
@@ -79,6 +80,15 @@ export enum Tag {
     "users" = "p"
 }
 
+export const newProfileEvent = (
+    // TODO: Profile interface
+    profile_metadata: any,
+    public_key: string,
+    private_key: string
+) => {
+    return genericEvent(Kind.profile, JSON.stringify(profile_metadata), public_key, private_key, []);
+};
+
 export const newPostEvent = (
     ipfs_link: string,
     public_key: string,
@@ -121,8 +131,6 @@ export const newCommentEvent = (
 // --- Relay / Event Management ---
 
 export const initRelay = async (url: string) => {
-    // const relay = relayInit('ws://10.33.141.120/relay')
-
     const relay = relayInit(url);
 
     relay.on("connect", () => {
@@ -137,7 +145,7 @@ export const initRelay = async (url: string) => {
     return relay;
 };
 
-const getEvents = async (relay: Relay, filters: any[]) => {
+export const getEvents = async (relay: Relay, filters: any[]) => {
     const events = await relay.list(filters);
     return events;
 };
@@ -150,7 +158,7 @@ interface PostsFilter {
 }
 
 // Get posts, optionally from a specific author
-const _getPosts = async (relay: Relay, author = "", limit = 0, delta = 0) => {
+export const getPosts = async (relay: Relay, author = "", limit = 0, delta = 0) => {
     let filter: PostsFilter = { kinds: [1] };
     if (author) {
         filter["author"] = [author];
@@ -171,9 +179,9 @@ const _getPosts = async (relay: Relay, author = "", limit = 0, delta = 0) => {
     return posts;
 };
 
-export const getPosts = async () => {
-    let relay = await initRelay(RELAY_URL);
-    return _getPosts(relay);
+export const getUsers = async (relay: Relay) => {
+    const posts = await getEvents(relay, [{ kinds: [Kind.profile] }]);
+    return posts;
 };
 
 export const getCollections = async (relay: Relay) => {

@@ -1,5 +1,5 @@
 <script>
-	import { postDictionary } from '../lib/stores'
+	import { postDictionary, userDictionary } from '../lib/stores'
 	import { preload } from '../lib/util'
     
 	import Post from '../app/Post.svelte'
@@ -15,15 +15,10 @@
 <div class="sideScroll">
   {#if posts}
 	{#each posts as event (event.id)}
-      {#await preload($postDictionary[event.content]?.image)}
-      {:then image}
-		<Post 
-			artist="BlueShirtGuy" 
-			name="{$postDictionary[event.content]?.name}" 
- 			image="{image}"
- 			description="{$postDictionary[event.content]?.description}"
- 		/>
-      {/await}
+      <Post 
+        postHash="{event.content}"
+        image="{$postDictionary[event.content]?.image}"
+        />
 	{/each}
   {/if}
 </div>

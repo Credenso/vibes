@@ -3,11 +3,18 @@
 - [x] Add profile modal
 - [x] finish upload
 - [x] Make it a PWA
-- [ ] add profile support
+- [x] add profile support
+- [ ] song modal
+- [ ] comments
+- [ ] remove tailwind
 - [ ] add music player
 - [ ] implement searching
 - [ ] add Collections support
+- [ ] upgrade upload screen
+    - [ ] resize uploaded images
+    - [ ] upload preview
+    - [ ] overhaul UI
 - [ ] manually configure relay and ipfs address
 - [ ] fix nostr compatibility
-- [ ] Allow for offline collections - listening & download
+- [ ] Allow for offline collections - listening & download https://web.dev/learn/pwa/offline-data/
 - [ ] idk

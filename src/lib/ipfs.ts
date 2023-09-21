@@ -9,7 +9,7 @@ import {
 const IPFS_URL = "http://localhost:5001/api/v0";
 const IPFS_FILE_BASE = "http://localhost:8080/ipfs/";
 
-interface IpfsResponse {
+export interface IpfsResponse {
     Name: string;
     Hash: string;
     Size: number;
@@ -62,13 +62,14 @@ export const uploadSong = async (e: any) => {
 
     const { sk, pk } = genKeys();
     let ipfsHash: string = ((await res.json()) as IpfsResponse).Hash;
+    return ipfsHash
 
-    let event = newPostEvent(ipfsHash, pk, sk);
+    //let event = newPostEvent(ipfsHash, pk, sk);
 
-    let relay = await initRelay(RELAY_URL);
+    //let relay = await initRelay(RELAY_URL);
 
-    if (!event) return;
-    return publishEvent(relay, event);
+    //if (!event) return;
+    //return publishEvent(relay, event);
 };
 
 export const getFile = async (id: IpfsId) => {

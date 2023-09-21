@@ -7,9 +7,8 @@
     newProfileEvent,
     publishEvent
   } from '../lib/nostr'
-  import { userDictionary } from '../lib/stores'
+  import { userDictionary, keys } from '../lib/stores'
 
-  export let keys
   export let profile
 
   let pro = false
@@ -28,11 +27,11 @@
   onMount(() => {
     console.log('user is', profile)
     // TODO: We need a better solution than localStorage?
-    keys.publicKey = window.localStorage.getItem('vibes_public_key')
-    keys.privateKey = window.localStorage.getItem('vibes_private_key')
+    $keys.publicKey = window.localStorage.getItem('vibes_public_key')
+    $keys.privateKey = window.localStorage.getItem('vibes_private_key')
 
     // If they have no identity, make one!
-    if(!keys.privateKey) {
+    if(!$keys.privateKey) {
       newKeys()
       saveKeys()
     }
@@ -40,21 +39,21 @@
 
   const newKeys = () => {
     let { sk, pk } = genKeys();
-    keys.publicKey = pk
-    keys.privateKey = sk
+    $keys.publicKey = pk
+    $keys.privateKey = sk
   }
 
   const saveKeys = () => {
-    if (keys.publicKey && keys.privateKey) {
-      window.localStorage.setItem('vibes_public_key', keys.publicKey)
-      window.localStorage.setItem('vibes_private_key', keys.privateKey)
+    if ($keys.publicKey && $keys.privateKey) {
+      window.localStorage.setItem('vibes_public_key', $keys.publicKey)
+      window.localStorage.setItem('vibes_private_key', $keys.privateKey)
     }
   }
 
   const saveProfile = async (metadata) => {
     saving = true
     const relay = await initRelay(RELAY_URL)
-    let profileEvent = newProfileEvent(metadata, keys.publicKey, keys.privateKey)
+    let profileEvent = newProfileEvent(metadata, $keys.publicKey, $keys.privateKey)
     publishEvent(relay, profileEvent)
       .then(res => {
         saving = false
@@ -93,24 +92,24 @@
     {#if pro}
       <div class="formEntry">
         <label for="pk">Public Key</label>
-        <input type="text" id="pk" value="{keys.publicKey}" />
+        <input type="text" id="pk" value="{$keys.publicKey}" />
         <br>
       </div>
       <div class="formEntry">
         <label for="sk">Private Key</label>
-        <input type="text" id="sk" value="{keys.privateKey}" />
+        <input type="text" id="sk" value="{$keys.privateKey}" />
       </div>
       <button on:click={newKeys}>Generate New Keys</button>
       <button on:click={saveKeys}>Save</button>
     {:else}
       <div class="formEntry">
         <label for="pk">Public Key</label>
-        <input type="text" id="pk" value="{keys.publicKey}" disabled/>
+        <input type="text" id="pk" value="{$keys.publicKey}" disabled/>
         <br>
       </div>
       <div class="formEntry">
         <label for="sk">Private Key</label>
-        <input type="text" id="sk" value="{keys.privateKey}" disabled/>
+        <input type="text" id="sk" value="{$keys.privateKey}" disabled/>
       </div>
     {/if}
   </details>

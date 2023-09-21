@@ -24,6 +24,15 @@ export const genKeys = () => {
     return { sk, pk };
 };
 
+// TODO: Integrate this interface
+interface Event {
+    kind: number,
+    content: string,
+    public_key: string,
+    private_key: string,
+    tags: string[][]
+}
+
 const genericEvent = (
     kind: number,
     content: string,
@@ -31,7 +40,6 @@ const genericEvent = (
     private_key: string,
     tags: string[][]
 ) => {
-    console.log("details",kind,content,public_key,private_key,tags)
     const unsignedEvent: UnsignedEvent<number> = {
         kind: kind,
         pubkey: public_key,
@@ -70,14 +78,13 @@ export enum Kind {
     "post" = 1,
     "album" = 2,
     "like" = 3,
-    "comment" = 4,
     "follow" = 5,
 }
 
 // TODO: Refactor this to accord to NIPs
 export enum Tag {
-    "replying_to" = "e",
-    "users" = "p"
+    "event" = "e",
+    "pubkey" = "p"
 }
 
 export const newProfileEvent = (
@@ -122,9 +129,13 @@ export const newCommentEvent = (
     private_key: string,
     replying_to = ""
 ) => {
-    return genericEvent(Kind.comment, comment, public_key, private_key, [
-        [Tag.replying_to, post_id],
-        [Tag.users, public_key],
+    // We always use this tag in comments
+    let tags = [
+        [Tag.event, post_id, RELAY_URL, "root"]
+    ]
+    return genericEvent(Kind.post, comment, public_key, private_key, [
+        [Tag.event, post_id, RELAY_URL, "root"],
+        [Tag.pubkey, public_key],
     ]);
 };
 

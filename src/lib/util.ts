@@ -30,3 +30,8 @@ export function clickOutside(element, callbackFunction) {
         }
     }
 }
+
+export const prettyDate = (date) => {
+    return `${date.toDateString().split(' ').slice(0,3).join(' ')} - ${date.toLocaleString().split(' ')[1].split(':').slice(0,2).join(":")}`
+}
+

@@ -24,7 +24,9 @@
   import { 
     postDictionary,
     userDictionary,
+    commentsDictionary,
     activePost,
+    keys,
     relay
   } from './lib/stores.js'
 
@@ -36,17 +38,15 @@
   let events = []
   let results = undefined
 
-  // User Variables
-  let keys = {
-    publicKey: undefined,
-    privateKey: undefined
-  }
-
   let profile = {};
 
   activePost.subscribe((post) => {
     console.log('active post is...', post)
   })
+
+  // Encapsulate this in a function, generate keys by default if they don't exist
+  $keys.publicKey = window.localStorage.getItem('vibes_public_key')
+  $keys.privateKey = window.localStorage.getItem('vibes_private_key')
 
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
@@ -60,19 +60,40 @@
     results = Promise.all(events.map(async (event) => {
       // If this event is a "post"...
       if (event.kind === 1) {
-        // Then we get the data from IPFS,
-        const eventData = await getSong(event.content);
-        // And save it to the postDictionary with the event
-        $postDictionary[event.content] = {...eventData, event};
-        return eventData
+        // Then we need to decide if it's a post or a comment.
 
+        // As it stands, we don't tag posts at all. If a 1-kind
+        // event has tags, we can assume it is a comment
+        if (event.tags.length > 0) {
+          // First, we get the root post.
+          const original_post = event.tags
+            .find(t => t[t.length - 1] === "root")[1]
+          console.log("op",original_post)
+          const comments = $commentsDictionary[original_post]
+
+          // Then we add the comment to a list of replies
+          // to that specific post
+          if (comments) {
+            $commentsDictionary[original_post].push(event)
+          } else {
+            $commentsDictionary[original_post] = [event]
+          }
+        } else {
+          // If it's not a comment, then it's a post.
+          // So, we get the data from IPFS,
+          const eventData = await getSong(event.content);
+
+          // And save it to the postDictionary with the event
+          $postDictionary[event.content] = {...eventData, event};
+          return eventData
+        }
       // If it's a user profile...
       } else if (event.kind === 0) {
         //let tags = event.tags.reduce((object, tag) => {...object, [tag[0]]: tag[1] }, {})
         let content = JSON.parse(event.content);
         $userDictionary[event.pubkey] = content;
 
-        if (event.pubkey === keys.publicKey) {
+        if (event.pubkey === $keys.publicKey) {
           profile = content
         }
 
@@ -92,7 +113,6 @@
   }
 
   const navTo = (pageName) => {
-    console.log('navigating to', pageName)
     page = pageName;
     openMenu = false;
   }
@@ -106,7 +126,7 @@
   <button on:click={() => navTo("upload")}>Upload</button>
 </Sidebar>
 
-<Profile bind:keys bind:profile />
+<Profile bind:profile />
 
 <main>
   <div class="redBorder">
@@ -121,10 +141,10 @@
           <Sidescroll 
             title="Recently posted."
             color="red"
-            posts={events.filter(e => e.kind === 1).reverse()}
+            posts={events.filter(e => e.kind === 1 && e.tags.length === 0).reverse()}
             />
           {:else if page === "upload"}
-            <Upload bind:keys />
+            <Upload bind:keys={$keys} />
           {:else if page === "search"}
             <p>Searching for {search}</p>
           {/if}

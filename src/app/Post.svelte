@@ -12,7 +12,6 @@
     if (content) {
       author = $userDictionary[content.event.pubkey]
     }
-    console.log('content', content)
   })
 
   const setActive = () => {

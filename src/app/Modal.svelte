@@ -1,9 +1,9 @@
 <script>
-  import { onMount } from 'svelte'
+  import CommentsBlock from './CommentsBlock.svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { 
     initRelay,
     RELAY_URL,
-    genKeys,
     newProfileEvent,
     publishEvent
   } from '../lib/nostr'
@@ -24,33 +24,17 @@
   }
 
   onMount(() => {
-    activePost.subscribe((hash) => {
+    const unsubscribe = activePost.subscribe((hash) => {
       if (hash) {
         data = $postDictionary[hash]
         author = $userDictionary[data.event.pubkey]
-        console.log('data!', data)
-        console.log('author!', author)
         openModal()
       }
     })
+
+    // This is to prevent memory leaks?
+    //onDestroy(unsubscribe)
   })
-
-  const newKeys = () => {
-    let { sk, pk } = genKeys();
-    keys.publicKey = pk
-    keys.privateKey = sk
-  }
-
-  const saveProfile = async (metadata) => {
-    saving = true
-    const relay = await initRelay(RELAY_URL)
-    let profileEvent = newProfileEvent(metadata, keys.publicKey, keys.privateKey)
-    publishEvent(relay, profileEvent)
-      .then(res => {
-        saving = false
-        closeModal()
-      })
-  }
 </script>
 
 <div on:click={closeModal} class:modalOpen class="overlay"></div>
@@ -58,10 +42,15 @@
 <div class:modalOpen class="modal">
   {#if data}
     <p class="header">{data.name}</p>
-    <small>posted Today</small>
+    <small>posted {new Date(data.event.created_at * 1000).toDateString()}</small>
     <img src="{data.image}" alt="img"/>
     <p>{data.description}</p>
-    <a href="{author?.site}" target="_blank">{author?.name}</a>
+    <a class="author" href="{author?.site || '#'}" target="_blank">-- {author?.name || "Anonymous"}</a>
+    <hr>
+    <p class="header">Comments</p>
+    {#if modalOpen}
+      <CommentsBlock event={data.event.id} />
+    {/if}
   {/if}
 </div>
 
@@ -81,28 +70,16 @@
     border-radius: 0.5em;
   }
 
-  input {
-    background-color: #EEEEEE;
-    border-radius: 1em;
-    padding: 0.5em;
-  } 
-
   hr {
     margin: .5em;
   }
 
-  .formEntry {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-  }
-
-  .formEntry label {
-    font-weight: bold;
-  }
-
-  .formEntry input {
-    margin: 0.5em;
+  .author {
+    color: #028a9b;
+    text-decoration: unset;
+    text-align: right;
+    display: block;
+    padding: 0.5em;
   }
 
   .overlay {
@@ -128,7 +105,7 @@
     position: absolute;
     overflow: hidden;
     opacity: 0;
-    width: 90vw;
+    width: min(90vw, 30em);
     height: 0;
     border-radius: 1em;
     top: 10vh;

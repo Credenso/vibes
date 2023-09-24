@@ -23,20 +23,6 @@
     modalOpen = false
   }
 
-
-  onMount(() => {
-    console.log('user is', profile)
-    // TODO: We need a better solution than localStorage?
-    $keys.publicKey = window.localStorage.getItem('vibes_public_key')
-    $keys.privateKey = window.localStorage.getItem('vibes_private_key')
-
-    // If they have no identity, make one!
-    if(!$keys.privateKey) {
-      newKeys()
-      saveKeys()
-    }
-  })
-
   const newKeys = () => {
     let { sk, pk } = genKeys();
     $keys.publicKey = pk

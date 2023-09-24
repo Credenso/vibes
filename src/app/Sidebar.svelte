@@ -20,14 +20,20 @@
 </script>
 
 <MenuButton  bind:open />
-<aside class="fixed w-half h-full bg-gray-200 border-r-2 shadow-lg" class:open>
-	<nav use:clickOutside={closeIfOpen} class="p-12 text-xl">
+<aside class:open>
+	<nav use:clickOutside={closeIfOpen}>
 		<slot />
 	</nav>
 </aside>
 
 <style>
 	aside {
+		position: fixed;
+		width: 50%;
+		height: 100%;
+		background-color: #EEEEEE;
+		border-right-width: 2px;
+		box-shadow: 0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);
 		z-index: 100;
 		top: 0;
 		left: -200%;
@@ -37,6 +43,8 @@
 	nav {
 		display: flex;
 		flex-direction: column;
+		padding: 3rem;
+		font-size: 1.25rem;
 	}
 	
 	.open {

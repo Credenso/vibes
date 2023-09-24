@@ -51,7 +51,7 @@
     </div>
   {:else}
     <div class="deets">
-      <b>{$userDictionary[$keys.publicKey].name || "Anonymous"}</b><hr><p>{prettyDate(new Date())}</p>
+      <b>{$userDictionary[$keys?.publicKey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date())}</p>
     </div>
     <div class="deets">
       <textarea name="comment" bind:value="{newComment}" />

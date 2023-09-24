@@ -25,12 +25,25 @@
 	button {
 		z-index: 101;
 		position: fixed;
+		cursor: pointer;
 		top: 0;
 		left: 0;
 		margin-left: 1.5rem;
+		margin-right: 1rem;
+		border-style: none;
 		height: 5em;
+		color: rgba(160,174,192,1);
 	}
-	
+
+	button:hover {
+		color: rgba(74,85,104,1);
+	}
+
+	button:focus {
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+	}
+
 	.open svg {
 		transform: scale(0.8) translate(0px, -6px);
 	}

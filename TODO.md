@@ -7,9 +7,11 @@
 - [x] song modal
 - [x] comments
 - [x] song modal date
-- [ ] remove tailwind
-- [ ] add music player
+- [x] remove tailwind (okay, it can stick around a bit)
+- [x] fix alternative logins
+- [x] add music player
 - [ ] live updates
+- [ ] add music controls
 - [ ] implement searching
 - [ ] add Collections support
 - [ ] upgrade upload screen
@@ -17,9 +19,13 @@
     - [ ] upload preview
     - [ ] overhaul UI
 
-# Next Steps
+# Next Steps - Decentralization
+- [ ] publish as NIP-78
 - [ ] manually configure relay and ipfs address
+- [ ] reconsider IPFS vs torrents / .magnet links vs dat protocol
 - [ ] fix nostr compatibility
 - [ ] Allow for offline collections - listening & download https://web.dev/learn/pwa/offline-data/
 - [ ] refactor Modal (there should just be one)
+- [ ] videos
 - [ ] nostr lib typescript
+- [ ] interop with iris (Nostr client)

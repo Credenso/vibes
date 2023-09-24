@@ -9,6 +9,7 @@
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
   import Modal from './app/Modal.svelte'
+  import MusicPlayer from './app/MusicPlayer.svelte'
 
   // Utilities
   import { onMount, onDestroy } from 'svelte'
@@ -18,9 +19,12 @@
     getPosts,
     getUsers,
     getEvents,
+    unsecuredLocalKeys,
     publishEvent
   } from './lib/nostr'
+
   import { getSong } from './lib/ipfs'
+
   import { 
     postDictionary,
     userDictionary,
@@ -38,15 +42,21 @@
   let events = []
   let results = undefined
 
+  let music = new Audio()
+
   let profile = {};
 
   activePost.subscribe((post) => {
     console.log('active post is...', post)
+    //console.log($postDictionary[post])
+    //music.src = $postDictionary[post]?.audio
+    //music.play()
   })
 
   // Encapsulate this in a function, generate keys by default if they don't exist
-  $keys.publicKey = window.localStorage.getItem('vibes_public_key')
-  $keys.privateKey = window.localStorage.getItem('vibes_private_key')
+  $keys = unsecuredLocalKeys()
+  //$keys.publicKey = window.localStorage.getItem('vibes_public_key')
+  //$keys.privateKey = window.localStorage.getItem('vibes_private_key')
 
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
@@ -68,7 +78,7 @@
           // First, we get the root post.
           const original_post = event.tags
             .find(t => t[t.length - 1] === "root")[1]
-          console.log("op",original_post)
+
           const comments = $commentsDictionary[original_post]
 
           // Then we add the comment to a list of replies
@@ -128,6 +138,8 @@
 
 <Profile bind:profile />
 
+<MusicPlayer bind:music />
+
 <main>
   <div class="redBorder">
     <div class="orangeBorder">
@@ -147,6 +159,9 @@
             <Upload bind:keys={$keys} />
           {:else if page === "search"}
             <p>Searching for {search}</p>
+            <audio
+              src="http://http://bafybeiduxbvw3r5rjcl236p2o5tbshkgjfwcpoa2jkgfl5f756n3a6i6ny.ipfs.localhost:8080/"
+              />
           {/if}
         </section>
       </div>

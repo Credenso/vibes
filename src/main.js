@@ -1,5 +1,5 @@
 import './main.css'
-import './tailwind.min.css'
+import './build.css'
 import App from './App.svelte'
 
 const app = new App({

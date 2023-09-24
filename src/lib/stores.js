@@ -6,3 +6,6 @@ export const commentsDictionary = writable({});
 export const activePost = writable(undefined);
 export const relay = writable(undefined);
 export const keys = writable({});
+
+export const activeSong = writable(undefined);
+export const queue = writable([]);

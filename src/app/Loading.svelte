@@ -2,9 +2,9 @@
 	const randomQuip = () => {
 		const quips = [
 			"Modulating harmful frequencies...",
-			"Rasterizing negative energy...",
+			"Rasterizing that good-good...",
 			"Aligning qubits...",
-			"Auto-tuning Kumbaya...",
+			"Transcoding kumbaya.flac...",
 			"Harmonizing overtones...",
 			"Sending good vibes to the L1 cache...",
 			"Searching for post-hardcore folkstep...",
@@ -40,7 +40,7 @@
 		align-items: center;
 		justify-content: center;
 		width: 100vw;
-		height: 80%;
+		height: 100%;
 		padding: 5em;
 	}
 	

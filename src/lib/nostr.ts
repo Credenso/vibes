@@ -24,6 +24,22 @@ export const genKeys = () => {
     return { sk, pk };
 };
 
+export const unsecuredLocalKeys = () => {
+    let publicKey = window.localStorage.getItem('vibes_public_key')
+    let privateKey = window.localStorage.getItem('vibes_private_key')
+
+    if (!privateKey) {
+        let newKeys = genKeys()
+        privateKey = newKeys.sk
+        publicKey = newKeys.pk
+
+        window.localStorage.setItem('vibes_private_key', privateKey)
+        window.localStorage.setItem('vibes_public_key', publicKey)
+    }
+
+    return { privateKey, publicKey }
+}
+
 // TODO: Integrate this interface
 interface Event {
     kind: number,

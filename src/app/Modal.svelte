@@ -55,10 +55,6 @@
 </div>
 
 <style>
-
-  small {
-    text-align: right;
-  }
   button {
     padding: 0.5em;
     margin: 0.5em auto;
@@ -100,7 +96,8 @@
   }
 
   .modal {
-    display: block;
+    display: flex;
+    flex-direction: column;
     background: white;
     position: absolute;
     overflow: hidden;
@@ -117,9 +114,14 @@
 
   .modalOpen.modal {
     overflow-y: scroll;
+    scrollbar-width: none;
     padding: 2em;
     opacity: 1;
     height: 80vh;
+  }
+
+  .modalOpen.modal::-webkit-scrollbar{
+    display: none;
   }
 
   .modalOpen.overlay {

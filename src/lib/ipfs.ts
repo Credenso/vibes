@@ -28,6 +28,9 @@ const uploadFile = async (f: File) => {
 };
 
 //form post rqeuest
+// TODO: Allow video upload
+// TODO: Form / filetype validation
+// TODO: resize images
 export const uploadSong = async (e: any) => {
     e.preventDefault();
 

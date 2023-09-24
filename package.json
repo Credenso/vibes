@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -14,6 +14,7 @@
     "vite": "^4.4.5"
   },
   "dependencies": {
-    "nostr-tools": "^1.15.0"
+    "nostr-tools": "^1.15.0",
+    "tailwindcss": "^3.3.3"
   }
 }

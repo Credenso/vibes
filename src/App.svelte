@@ -58,6 +58,54 @@
   //$keys.publicKey = window.localStorage.getItem('vibes_public_key')
   //$keys.privateKey = window.localStorage.getItem('vibes_private_key')
 
+  // This is the function responsible for taking event data 
+  // and turning it into something that our application can
+  // work with.
+  const processEvent = async (event) => {
+    // If this event is a "post"...
+    if (event.kind === 1) {
+      // Then we need to decide if it's a post or a comment.
+
+      // As it stands, we don't tag posts at all. If a 1-kind
+      // event has tags, we can assume it is a comment
+      if (event.tags.length > 0) {
+        // First, we get the root post.
+        const original_post = event.tags
+          .find(t => t[t.length - 1] === "root")[1]
+
+        const comments = $commentsDictionary[original_post]
+
+        // Then we add the comment to a list of replies
+        // to that specific post
+        if (comments) {
+          $commentsDictionary[original_post] = [...$commentsDictionary[original_post], event]
+        } else {
+          $commentsDictionary[original_post] = [event]
+        }
+      } else {
+        // If it's not a comment, then it's a post.
+        // So, we get the data from IPFS,
+        const eventData = await getSong(event.content);
+
+        // And save it to the postDictionary with the event
+        $postDictionary[event.content] = {...eventData, event};
+        return eventData
+      }
+      // If it's a user profile...
+    } else if (event.kind === 0) {
+      //let tags = event.tags.reduce((object, tag) => {...object, [tag[0]]: tag[1] }, {})
+      let content = JSON.parse(event.content);
+      $userDictionary[event.pubkey] = content;
+
+      if (event.pubkey === $keys.publicKey) {
+        profile = content
+      }
+
+      return {...content, "pubkey": event.pubkey };
+    }
+  }
+
+
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
   // processed without further latency
@@ -67,49 +115,20 @@
 
     // I don't think we need this value for anything,
     // but we can await it.
-    results = Promise.all(events.map(async (event) => {
-      // If this event is a "post"...
-      if (event.kind === 1) {
-        // Then we need to decide if it's a post or a comment.
+    results = Promise.all(events.map(async (event) => processEvent(event)))
 
-        // As it stands, we don't tag posts at all. If a 1-kind
-        // event has tags, we can assume it is a comment
-        if (event.tags.length > 0) {
-          // First, we get the root post.
-          const original_post = event.tags
-            .find(t => t[t.length - 1] === "root")[1]
-
-          const comments = $commentsDictionary[original_post]
-
-          // Then we add the comment to a list of replies
-          // to that specific post
-          if (comments) {
-            $commentsDictionary[original_post].push(event)
-          } else {
-            $commentsDictionary[original_post] = [event]
-          }
-        } else {
-          // If it's not a comment, then it's a post.
-          // So, we get the data from IPFS,
-          const eventData = await getSong(event.content);
-
-          // And save it to the postDictionary with the event
-          $postDictionary[event.content] = {...eventData, event};
-          return eventData
-        }
-      // If it's a user profile...
-      } else if (event.kind === 0) {
-        //let tags = event.tags.reduce((object, tag) => {...object, [tag[0]]: tag[1] }, {})
-        let content = JSON.parse(event.content);
-        $userDictionary[event.pubkey] = content;
-
-        if (event.pubkey === $keys.publicKey) {
-          profile = content
-        }
-
-        return {...content, "pubkey": event.pubkey };
+    let sub = $relay.sub([
+      {
+        kinds: [0,1],
+        since: Math.floor(Date.now() / 1000)
       }
-    }))
+    ])
+
+    sub.on('event', (event) => {
+      console.log('got event, processing')
+      processEvent(event)
+    })
+
   });
 
   // This waits until the content is loaded before it displays

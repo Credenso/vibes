@@ -10,7 +10,7 @@
 - [x] remove tailwind (okay, it can stick around a bit)
 - [x] fix alternative logins
 - [x] add music player
-- [ ] live updates
+- [x] live updates
 - [ ] add music controls
 - [ ] implement searching
 - [ ] add Collections support
@@ -18,6 +18,9 @@
     - [ ] resize uploaded images
     - [ ] upload preview
     - [ ] overhaul UI
+
+# Next Steps - Polish
+- [ ] figure out why subscription is sketchy
 
 # Next Steps - Decentralization
 - [ ] publish as NIP-78

@@ -16,8 +16,8 @@
   {#if posts}
 	{#each posts as event (event.id)}
       <Post 
-        postHash="{event.content}"
-        image="{$postDictionary[event.content]?.image}"
+        postId="{event.id}"
+        image="{$postDictionary[event.id]?.image}"
         />
 	{/each}
   {/if}

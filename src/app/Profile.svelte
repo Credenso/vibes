@@ -9,6 +9,10 @@
   } from '../lib/nostr'
   import { userDictionary, keys } from '../lib/stores'
 
+  // For hashing the privateKey
+  import b4a from 'b4a'
+  import { schnorr } from '@noble/curves/secp256k1';
+
   export let profile
 
   let pro = false
@@ -38,6 +42,24 @@
 
   const saveProfile = async (metadata) => {
     saving = true
+    if (metadata.isArtist && metadata.drive === undefined) {
+      console.log("making a Solar drive")
+      const pubKey = $keys.publicKey
+      const sigArray = schnorr.sign(pubKey, $keys.privateKey)
+      const verified = schnorr.verify(sigArray, pubKey, pubKey)
+      const sig = b4a.toString(sigArray, 'hex')
+
+      // This will be a request to the Solar server they specify
+      const key = await fetch("http://localhost:8002/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain"
+        },
+        body: JSON.stringify({ pubKey, sig })
+      })
+
+      metadata.drive = await key.text()
+    }
     const relay = await initRelay(RELAY_URL)
     let profileEvent = newProfileEvent(metadata, $keys.publicKey, $keys.privateKey)
     publishEvent(relay, profileEvent)
@@ -63,6 +85,22 @@
       <label for="site">Site. </label>
       <input type="text" id="site" placeholder="https://my.site" bind:value={profile.site} />
     </div>
+    <div class="formEntry">
+      <label for="artist">I want to publish content!</label>
+      <input type="checkbox" id="artist" bind:checked={profile.isArtist} />
+    </div>
+    {#if profile.isArtist}
+      <div class="formEntry">
+        <label for="system">System.</label>
+        <input type="text" id="site" placeholder="https://solar.my.site" bind:value={profile.solarServer} />
+      </div>
+      {#if profile.solarKey}
+        <div class="formEntry">
+          <label for="key">Solar Key. </label>
+          <input type="text" id="key" bind:value={profile.solarKey} disabled />
+        </div>
+      {/if}
+    {/if}
   </form>
   {#if saving}
     <button disabled>Saving...</button>
@@ -130,6 +168,10 @@
     display: flex;
     align-items: center;
     justify-content: space-around;
+  }
+
+  .formEntry * {
+    flex-grow: 1;
   }
 
   .formEntry label {

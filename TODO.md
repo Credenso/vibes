@@ -11,16 +11,22 @@
 - [x] fix alternative logins
 - [x] add music player
 - [x] live updates
-- [ ] add music controls
-- [ ] implement searching
-- [ ] add Collections support
-- [ ] upgrade upload screen
-    - [ ] resize uploaded images
-    - [ ] upload preview
-    - [ ] overhaul UI
+- [x] Investigate Sonar
+- [x] Integrate Hypercore
+- [ ] add music controls - M
+- [ ] implement searching - M
+- [ ] add Collections support - M
+- [ ] Queue songs / Play Now - S
+- [ ] admin keypair / User classes (Admin, creator, fan)
+    - [ ] permissions for inviting
+    - [ ] permissions for uploading
+- [ ] upgrade upload screen - M
+    - [ ] resize uploaded images - S
+    - [ ] upload preview - S 
+    - [ ] overhaul UI - S
 
 # Next Steps - Polish
-- [ ] figure out why subscription is sketchy
+- [x] figure out why subscription is sketchy
 
 # Next Steps - Decentralization
 - [ ] publish as NIP-78

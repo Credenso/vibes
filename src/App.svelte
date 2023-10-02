@@ -6,6 +6,7 @@
   import Post from './app/Post.svelte'
   import Search from './app/Search.svelte'
   import Upload from './app/Upload.svelte'
+  import IPFSUpload from './app/IPFSUpload.svelte'
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
   import Modal from './app/Modal.svelte'
@@ -42,7 +43,10 @@
   let events = []
   let results = undefined
 
+  let recentPosts = []
+
   let music = new Audio()
+  let queue = []
 
   let profile = {};
 
@@ -53,10 +57,11 @@
     //music.play()
   })
 
-  // Encapsulate this in a function, generate keys by default if they don't exist
+  // This either generates new keys and saves
+  // them to local storage, or just uses the
+  // ones that are already there.
+  // It isn't secure, but it works for now.
   $keys = unsecuredLocalKeys()
-  //$keys.publicKey = window.localStorage.getItem('vibes_public_key')
-  //$keys.privateKey = window.localStorage.getItem('vibes_private_key')
 
   // This is the function responsible for taking event data 
   // and turning it into something that our application can
@@ -64,11 +69,11 @@
   const processEvent = async (event) => {
     // If this event is a "post"...
     if (event.kind === 1) {
-      // Then we need to decide if it's a post or a comment.
+      // Then we need to decide if it's a media post or a comment.
 
-      // As it stands, we don't tag posts at all. If a 1-kind
-      // event has tags, we can assume it is a comment
-      if (event.tags.length > 0) {
+      // We determine if the post is a comment based on 
+      // whether or not it has a "root" tag
+      if (event.tags.length > 0 && event.tags.find(t => t[t.length - 1] === "root")) {
         // First, we get the root post.
         const original_post = event.tags
           .find(t => t[t.length - 1] === "root")[1]
@@ -82,13 +87,33 @@
         } else {
           $commentsDictionary[original_post] = [event]
         }
-      } else {
-        // If it's not a comment, then it's a post.
+      } else if (event.content.startsWith('Qm') && event.content.length === 46) {
+        // If the event is a 46 character string starting with Qm, we assume it's an IPFS link
         // So, we get the data from IPFS,
         const eventData = await getSong(event.content);
 
         // And save it to the postDictionary with the event
-        $postDictionary[event.content] = {...eventData, event};
+        $postDictionary[event.id] = {...eventData, event};
+        recentPosts = [event, ...recentPosts.slice(0, 10)]
+        console.log('ipfs data', eventData)
+        return eventData
+      } else {
+        // Assume it's a Hypercore upload.
+        let eventData = undefined
+        try {
+          eventData = JSON.parse(event.content)
+        } catch (SyntaxError) {
+          eventData = undefined
+        }
+
+        if (eventData) {
+          eventData.audio = `http://localhost/content/${event.pubkey}/${eventData.audio}`
+          eventData.image = `http://localhost/content/${event.pubkey}/${eventData.image}`
+        }
+
+        $postDictionary[event.id] = {...eventData, event};
+        recentPosts = [event, ...recentPosts.slice(0, 10)]
+        console.log('hypercore data', eventData)
         return eventData
       }
       // If it's a user profile...
@@ -97,6 +122,9 @@
       let content = JSON.parse(event.content);
       $userDictionary[event.pubkey] = content;
 
+      // If we find a user that matches our public key,
+      // That's our profile! Whichever one was published
+      // most recently ends up being the one we use.
       if (event.pubkey === $keys.publicKey) {
         profile = content
       }
@@ -152,12 +180,15 @@
 <Sidebar bind:open={openMenu}>
   <b>Menu</b>
   <button on:click={() => navTo("main")}>Home</button>
-  <button on:click={() => navTo("upload")}>Upload</button>
+  {#if profile.isArtist}
+    <button on:click={() => navTo("upload")}>Upload</button>
+    <button on:click={() => navTo("ipfs-upload")}>IPFS Upload</button>
+  {/if}
 </Sidebar>
 
 <Profile bind:profile />
 
-<MusicPlayer bind:music />
+<MusicPlayer bind:music bind:queue />
 
 <main>
   <div class="redBorder">
@@ -172,15 +203,14 @@
           <Sidescroll 
             title="Recently posted."
             color="red"
-            posts={events.filter(e => e.kind === 1 && e.tags.length === 0).reverse()}
+            bind:posts={recentPosts}
             />
           {:else if page === "upload"}
             <Upload bind:keys={$keys} />
+          {:else if page === "ipfs-upload"}
+            <IPFSUpload bind:keys={$keys} />
           {:else if page === "search"}
             <p>Searching for {search}</p>
-            <audio
-              src="http://http://bafybeiduxbvw3r5rjcl236p2o5tbshkgjfwcpoa2jkgfl5f756n3a6i6ny.ipfs.localhost:8080/"
-              />
           {/if}
         </section>
       </div>

@@ -15,24 +15,50 @@
 
   const handleUpload = async (e) => {
     e.preventDefault()
+    const data = new FormData(e.currentTarget)
+    console.log('formdata', data)
+    let content = {
+      name: undefined,
+      audio: undefined,
+      image: undefined,
+      description: undefined
+    }
+    const results = await fetch("http://localhost:8002/upload", {
+      method: "POST",
+      body: data
+    }).then(response => response.json()
+      .then(json => {
+        content.audio = json.audio;
+        content.image = json.image;
+        content.name = data.get('name');
+        content.description = data.get('desc');
 
-    const hash = await uploadSong(e)
-    const event = newPostEvent(hash, keys.publicKey, keys.privateKey)
-    publishEvent($relay, event)
+        const event = newPostEvent(JSON.stringify(content), keys.publicKey, keys.privateKey)
+        publishEvent($relay, event)
+      }))
   }
 
 </script>
 
-<p class="header">Upload A Song</p>
 <form on:submit={handleUpload}>
-  <h2>Song</h2>
-  <input type="file" id="formSong" name="song" />
-  <h2>Icon</h2>
-  <input type="file" id="formPic" name="icon" />
-  <h2>Song Name</h2>
-  <input type="text" id="formName" name="name" />
-  <h2>Song Desc</h2>
-  <input type="text" id="formDesc" name="name" />
+  <p class="header">Upload A Song</p>
+  <input type="hidden" name="pubkey" value={keys.publicKey} />
+  <div class="formEntry">
+    <label for="formSong">Song.</label>
+    <input type="file" id="formSong" name="song" />
+  </div>
+  <div class="formEntry">
+    <label for="formPic">Art.</label>
+    <input type="file" id="formPic" name="icon" />
+  </div>
+  <div class="formEntry">
+    <label for="formName">Name.</label>
+    <input type="text" id="formName" name="name" />
+  </div>
+  <div class="formEntry">
+    <label for="formDesc">About.</label>
+    <input type="text" id="formDesc" name="desc" />
+  </div>
   <br/>
   <br/>
   <button type="submit">Upload</button>
@@ -40,7 +66,44 @@
 
 
 <style>
+  form {
+    background: #FFFFFF;
+    margin: 0.5em;
+    padding: 0.5em;
+  }
+
   .header {
     font-size: 1.5em;
   }
+
+  input {
+    background-color: #EEEEEE;
+    border-radius: 1em;
+    padding: 0.5em;
+  }
+
+  button {
+    padding: 0.5em;
+    margin: 0.5em auto;
+    border: 1px solid;
+  }
+
+  .formEntry {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  .formEntry * {
+    flex-grow: 1;
+  }
+
+  .formEntry label {
+    font-weight: bold;
+  }
+
+  .formEntry input {
+    margin: 0.5em;
+  }
+
 </style>

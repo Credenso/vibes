@@ -6,7 +6,7 @@
     activePost 
   } from '../lib/stores'
 
-  export let postHash
+  export let postId
   export let image
   let content = undefined
   let name
@@ -14,7 +14,7 @@
   let currentlyPlaying = false
 
   postDictionary.subscribe(() => {
-    content = $postDictionary[postHash]
+    content = $postDictionary[postId]
     if (content) {
       author = $userDictionary[content.event.pubkey]
     }
@@ -29,7 +29,7 @@
   })
 
   const setActive = () => {
-    activePost.set(postHash)
+    activePost.set(postId)
   }
 
   const playSong = () => {
@@ -41,10 +41,10 @@
 
 <article class="post">
   <div class="box">
-    <div on:click={playSong} class="art">
+    <div class="art">
       <img src="{ image }" alt="vinyl"/>
     </div>
-    <div class:currentlyPlaying class="playIcon">
+    <div on:click={playSong} class:currentlyPlaying class="playIcon">
       <img src="play.png">
     </div>
     <section class="about" on:click={setActive}>
@@ -67,9 +67,8 @@
     top: 0;
     left: 0;
     width: 100%;
-    display: none;
     opacity: 0;
-    transition: all 0.1s ease-in-out;
+    transition: all 0.2s ease-in-out;
   }
 
   .playIcon img {
@@ -90,8 +89,7 @@
   }
 
   .currentlyPlaying {
-    display: block;
-    transition: all 0.1s ease-in-out;
+    transition: opacity 0.1s ease-in-out;
     opacity: 1;
   }
 

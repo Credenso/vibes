@@ -76,7 +76,7 @@
   }
 
   .commentBox {
-    border: 1px solid;
+    border: 2px solid;
     border-radius: 1em;
     margin: 0.5em;
     padding: 0.5em;

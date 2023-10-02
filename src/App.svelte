@@ -10,7 +10,7 @@
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
   import Modal from './app/Modal.svelte'
-  import MusicPlayer from './app/MusicPlayer.svelte'
+  import Music from './app/Music.svelte'
 
   // Utilities
   import { onMount, onDestroy } from 'svelte'
@@ -45,7 +45,8 @@
 
   let recentPosts = []
 
-  let music = new Audio()
+  let audioPlayer = new Audio()
+  audioPlayer.crossOrigin = true
   let queue = []
 
   let profile = {};
@@ -188,7 +189,7 @@
 
 <Profile bind:profile />
 
-<MusicPlayer bind:music bind:queue />
+<Music bind:audioPlayer bind:queue />
 
 <main>
   <div class="redBorder">

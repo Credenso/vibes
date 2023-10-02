@@ -37,16 +37,19 @@
 		align-items: center;
 		margin-left: 1.25rem;
 		margin-bottom: 1.25rem;
+		margin-right: 1rem;
 		box-shadow: 0.25em 0.25em 0.5em 0.25em #33333333;
 		background: #028a9b;
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
+		border: 2px solid white;
 		height: 3.25em;
 		width: 3.25em;
 		transition: width 0.2s ease-in-out;
+		color: rgb(107 114 128);
 	}
 
 	button.open {
-		width: 90%;
+		width: 75%;
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		transition: width 0.3s ease-in-out;
 	}

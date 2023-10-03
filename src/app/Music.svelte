@@ -1,175 +1,123 @@
 <script>
-  import { activeSong } from '../lib/stores.js'
-  import { clickOutside } from '../lib/util.ts'
+  import { activeSong, queue } from '../lib/stores.js'
+  import { clickOutside, secondsToTime } from '../lib/util.ts'
 
   import { onMount } from 'svelte'
 
   export let audioPlayer;
-  export let queue;
+  export let searchOpen;
 
   let open = false
-  let isPlaying = false
+  export let isPlaying
+  let hasAppeared = false
 
-  // If the searchBar is clicked, ignore.
-  // If the closed button is clicked, open it
-  // If the open button is clicked, search
-  const handleClick = (e) => {
-	  e.preventDefault()
-	  console.log('click!')
-	  togglePlay()
-	  if (e.target === document.getElementById('searchBar')) {
-		  console.log('searching!')
-	  } else if (!open) {
-		  open = true
-	  } else {
-		  console.log('querying search')
-		  //page = "search"
+  // These are reactive bindings, they update whenever
+  // one of the mentioned values changes
+  $: if (searchOpen) open = false;
+  $: isPlaying, setPlayPauseIcon(isPlaying)
+  let progress = undefined
+
+  const setPlayPauseIcon = (isPlaying) => {
+	  const icon = document.querySelector('#playPause')
+	  if (icon && isPlaying) {
+		  icon.src = "pause_button.png"
+	  } else if (icon) {
+		  icon.src = "play_button.png"
 	  }
   }
 
-  //// For the vibe measurement apparatus
-  //// It could be cool, but not really in scope.
-  //let audioCtx
-  //let analyser
-  //let track
+  // These two variables and the next three functions
+  // are for seeking to specific times in the song.
+  // It's not my best work, but it works... for now.
+  let seeking
+  let seekResult
 
-  //const startAudioContext = () => {
-  //    const canvas = document.getElementById("the-vibe")
-  //    const canvasCtx = canvas.getContext("2d")
+  const seek = (e) => {
+	  // We save the initial x-coordinate of the mouse
+	  // so that we can see how much we've moved for the
+	  // progress bar
+	  seeking = e.clientX
+	  const menuWidth = document.querySelector('#musicMenu').clientWidth
+	  const progressWidth = document.querySelector('#background').clientWidth
 
-  //    if (!audioCtx) {
-  //  	  audioCtx = new AudioContext()
-  //  	  track = audioCtx.createMediaElementSource(audioPlayer)
-  //  	  track.connect(audioCtx.destination)
-  //  	  analyser = audioCtx.createAnalyser()
-  //  	  analyser.connect(audioCtx.destination)
-  //  	  analyser.smoothingTimeConstant = 0.85;
+	  window.addEventListener("mousemove", moveProgressBar)
+	  window.addEventListener("mouseup", finishMove)
+	  window.addEventListener("touchmove", moveProgressBar)
+	  window.addEventListener("touchend", finishMove)
+  }
 
-  //  	  visualize()
-  //    }
+  const finishMove = () => {
+	  window.removeEventListener("touchmove", moveProgressBar)
+	  const newTime = Math.floor((seekResult / 100) * audioPlayer.duration)
 
-  //    function visualize() {
-  //  	  let WIDTH = canvas.width;
-  //  	  let HEIGHT = canvas.height;
+	  // newTime is also sometimes NaN
+	  if (newTime) {
+		  audioPlayer.currentTime = newTime
+	  }
+	  seekResult = undefined
+	  seeking = undefined
+  }
 
-  //  	  const visualSetting = "sinewave"
-  //  	  console.log(visualSetting);
+  const moveProgressBar = (e) => {
+	  const menuWidth = document.querySelector('#musicMenu').clientWidth
+	  const diff = e.clientX - seeking
+	  seekResult = Math.ceil((seeking + diff) * 100 / menuWidth)
 
-  //  	  if (visualSetting === "sinewave") {
-  //  		  analyser.fftSize = 2048;
-  //  		  const bufferLength = analyser.fftSize;
-  //  		  console.log(bufferLength);
+	  // Sometimes seekResult returns NaN, we skip those
+	  if (seekResult) {
+		  const widthValue = `max(3.25rem, ${seekResult}%)`
+		  document.querySelector('canvas').style.width = widthValue
+		  elapsed = secondsToTime(Math.floor((seekResult / 100 ) * audioPlayer.duration))
+	  }
+  }
 
-  //  		  const dataArray = new Uint8Array(bufferLength);
+  // We need these to record how long the song has
+  // been playing for
+  let elapsed
+  let duration
 
-  //  		  canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+  // Checks every 100ms what the current elapsed time is
+  window.setInterval(() => {
+	  if (isPlaying & !seeking) {
+		  elapsed = secondsToTime(audioPlayer.currentTime)
+		  duration = secondsToTime(audioPlayer.duration)
+		  progress = Math.ceil((audioPlayer.currentTime / audioPlayer.duration) * 100)
 
-  //  		  const draw = () => {
-  //  			  console.log('draw', Date.now())
-  //  			  let drawVisual = requestAnimationFrame(draw);
+		  if (progress) {
+			  const widthValue = `max(3.25rem, ${progress}%)`
+			  document.querySelector('canvas').style.width = widthValue
+		  }
+	  }
+  }, 100);
 
-  //  			  analyser.getByteTimeDomainData(dataArray);
-
-  //  			  canvasCtx.fillStyle = "rgb(200, 200, 200)";
-  //  			  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  //  			  canvasCtx.lineWidth = 2;
-  //  			  canvasCtx.strokeStyle = "rgb(0, 0, 0)";
-
-  //  			  canvasCtx.beginPath();
-
-  //  			  const sliceWidth = (WIDTH * 1.0) / bufferLength;
-  //  			  let x = 0;
-
-  //  			  for (let i = 0; i < bufferLength; i++) {
-  //  				  let v = dataArray[i] / 128.0;
-  //  				  let y = (v * HEIGHT) / 2;
-
-  //  				  if (i === 0) {
-  //  					  canvasCtx.moveTo(x, y);
-  //  				  } else {
-  //  					  canvasCtx.lineTo(x, y);
-  //  				  }
-
-  //  				  x += sliceWidth;
-  //  			  }
-
-  //  			  canvasCtx.lineTo(canvas.width, canvas.height / 2);
-  //  			  canvasCtx.stroke();
-  //  		  };
-
-  //  		  draw();
-  //  	  } else if (visualSetting == "frequencybars") {
-  //  		  analyser.fftSize = 256;
-  //  		  const bufferLengthAlt = analyser.frequencyBinCount;
-  //  		  console.log(bufferLengthAlt);
-
-  //  		  // See comment above for Float32Array()
-  //  		  const dataArrayAlt = new Uint8Array(bufferLengthAlt);
-
-  //  		  canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
-
-  //  		  const drawAlt = function () {
-  //  			  drawVisual = requestAnimationFrame(drawAlt);
-
-  //  			  analyser.getByteFrequencyData(dataArrayAlt);
-
-  //  			  canvasCtx.fillStyle = "rgb(0, 0, 0)";
-  //  			  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  //  			  const barWidth = (WIDTH / bufferLengthAlt) * 2.5;
-  //  			  let barHeight;
-  //  			  let x = 0;
-
-  //  			  for (let i = 0; i < bufferLengthAlt; i++) {
-  //  				  barHeight = dataArrayAlt[i];
-
-  //  				  canvasCtx.fillStyle = "rgb(" + (barHeight + 100) + ",50,50)";
-  //  				  canvasCtx.fillRect(
-  //  					  x,
-  //  					  HEIGHT - barHeight / 2,
-  //  					  barWidth,
-  //  					  barHeight / 2
-  //  				  );
-
-  //  				  x += barWidth + 1;
-  //  			  }
-  //  		  };
-
-  //  		  drawAlt();
-  //  	  } else if (visualSetting == "off") {
-  //  		  canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
-  //  		  canvasCtx.fillStyle = "red";
-  //  		  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-  //  	  }
-  //    }
-  //}
-
+  // Whenever the activeSong is set to something new, we play it
   activeSong.subscribe((file) => {
     if (file) {
+		hasAppeared = true;
 		audioPlayer.src = file
 		audioPlayer.play()
     }
   })
 
-  audioPlayer.addEventListener('play', () => isPlaying = true);
-  audioPlayer.addEventListener('pause', () => isPlaying = false);
+  queue.subscribe((queue) => {
+	  if (!isPlaying) {
+		  activeSong.set(queue.splice(0,1)[0])
+	  }
+  })
 
   audioPlayer.addEventListener('ended', () => {
     console.log("song over!")
-    if (queue.length > 0) {
-      activeSong.set(queue.splice(0,1))
-    } else {
-      activeSong.set(null)
-    }
+	nextSong()
   })
 
   const togglePlay = () => {
+	  console.log('toggling play')
 	  if (audioPlayer.paused) {
-		  audioPlayer.type("audio/mp3")
+	  console.log('playing')
 		  audioPlayer.play()
 		  isPlaying = true
 	  } else {
+
 		  audioPlayer.pause()
 		  isPlaying = false
 	  }
@@ -177,62 +125,105 @@
   
   let longpress = undefined
 
-  const touchStart = (e) => {
+  const buttonDown = (e) => {
 	  e.preventDefault()
 	  longpress = setTimeout(() => {
-		  console.log('longpress')
+		  // A long-press on the open bar starts seeking
+		  if (open) seek(e)
+
 		  longpress = undefined
 		  open = true
-	  }, 300)
+	  }, 250)
   }
 
-  const touchEnd = (e) => {
+  const buttonUp = (e) => {
 	  e.preventDefault()
 	  if (longpress) {
-		  clearTimeout(longpress)
-		  togglePlay()
+		  // Short press
+		  switch(e.target.id) {
+			  case "prev":
+				  previousSong();
+				  break;
+			  case "playPause":
+				  togglePlay();
+				  break;
+			  case "next":
+				  nextSong();
+				  break;
+		  }
+
 		  console.log('shortpress')
+		  clearTimeout(longpress)
+	  }
+  }
+  
+  const previousSong = () => {
+	  audioPlayer.currentTime = 0
+  }
+
+  const nextSong = () => {
+	  if ($queue.length > 0) {
+		  activeSong.set($queue.splice(0,1)[0])
+	  } else {
+		  activeSong.set(null)
+		  audioPlayer.currentTime = 0
+		  audioPlayer.pause()
 	  }
   }
 </script>
 
-<!--
-<canvas id="the-vibe" />
-<div on:click={() => startAudioContext()}>CTX</div>
--->
 <button 
+	id="musicMenu"
+	class:hasAppeared
 	class:open 
-	use:clickOutside={() => open = false} 
-	on:click={(e) => handleClick(e) }
-	on:touchstart={(e) => touchStart(e) }
-	on:touchend={(e) => touchEnd(e) }
+	use:clickOutside={() => open = false}
+
+	on:touchstart={(e) => buttonDown(e) }
+	on:touchend={(e) => buttonUp(e) }
+
+	on:mousedown={(e) => buttonDown(e) }
+	on:mouseup={(e) => buttonUp(e) }
 	>
+	<canvas class:open id="background" />
+	<p class:open class="minimized elapsed">{ elapsed }</p>
 	<div class:open class="minimized musicButton">
-		<img src="previous_track.png" alt="previous" />
+		<img id="prev" src="previous_track.png" alt="previous" />
 	</div>
 	<div class="musicButton">
 		<img class:isPlaying id="vinyl" src="vinyl.png" alt="vinyl" />
-		{#if isPlaying }
-			<img id="playPause" src="pause_button.png" />
-		{:else}
-			<img id="playPause" src="play_button.png" />
-		{/if}
+		<img id="playPause" src="play_button.png" />
 	</div>
 	<div class:open class="minimized musicButton">
-		<img src="next_track.png" alt="next" />
+		<img id="next" src="next_track.png" alt="next" />
 	</div>
+	<p class:open class="minimized duration">{duration}</p>
 </button>
 
 <style>
 	canvas {
-		width: 100%;
+		position: absolute;
+		width: 3.25rem;
+		max-width: 100%;
+		left: 0;
+		height: 100%;
+		background-color: #028a9b;
+		z-index: 99;
+		overflow: hidden;
+		border-radius: 1.625em;
+		align-self: center;
+		opacity: 0;
+		transition: width 0.1s linear;
+	}
+
+	canvas.open {
+		opacity: 1;
 	}
 
 	button {
 		z-index: 101;
 		position: fixed;
 		bottom: 0;
-		left: 0;
+		left: -5em;
 		display: flex;
 		margin-left: 1.25rem;
 		margin-bottom: 1.25rem;
@@ -242,8 +233,13 @@
 		height: 3.25em;
 		width: 3.25em;
 		transition: width 0.2s ease-in-out;
+		transition: left 0.5s ease-in-out;
 		justify-content: center;
 		border: 2px solid white;
+	}
+
+	button.hasAppeared {
+		left: 0;
 	}
 
 	.musicButton {
@@ -251,6 +247,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		z-index: 105;
 	}
 
 	.minimized {
@@ -280,27 +277,29 @@
 		position: relative;
 		height: 100%;
 		padding: 0.8em;
+		z-index: 100;
+	}
+
+	.elapsed {
+		align-self: center;
+		justify-content: start;
+		padding-left: 1.5em;
+		z-index: 100;
+		flex-grow: 1;
+	}
+
+	.duration {
+		align-self: center;
+		justify-content: end;
+		padding-right: 1.5em;
+		z-index: 100;
+		flex-grow: 1;
 	}
 
 	button.open {
 		width: 75%;
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		transition: width 0.3s ease-in-out;
-	}
-
-	button input {
-		display: inline;
-		width: 0;
-		border-radius: 1rem;
-		height: 2rem;
-	}
-
-	button.open input {
-		width: inherit;
-		margin: 0.5rem;
-		margin-left: 1rem;
-		margin-right: 1rem;
-		padding-left: 1rem;
 	}
 
 	button img {

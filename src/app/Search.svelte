@@ -3,7 +3,7 @@
 
 	export let search;
 	export let page;
-	let open = false
+	export let searchOpen
 
 	// If the searchBar is clicked, ignore.
 	// If the closed button is clicked, open it
@@ -13,8 +13,8 @@
 		console.log('click!')
 		if (e.target === document.getElementById('searchBar')) {
 			console.log('searching!')
-		} else if (!open) {
-			open = true
+		} else if (!searchOpen) {
+			searchOpen = true
 		} else {
 			console.log('querying search')
 			page = "search"
@@ -22,7 +22,7 @@
 	}
 </script>
 
-<button use:clickOutside={() => open = false} class:open on:click={(e) => handleClick(e) } class="text-gray-500 hover:text-gray-700 cursor-pointer mr-4 border-none focus:outline-none">
+<button use:clickOutside={() => searchOpen = false} class:searchOpen on:click={(e) => handleClick(e) } class="text-gray-500 hover:text-gray-700 cursor-pointer mr-4 border-none focus:outline-none">
 	<img src="magnifying_glass_light.png" alt="Search" />
 	<input id="searchBar" bind:value={search} />
 </button>
@@ -48,7 +48,7 @@
 		color: rgb(107 114 128);
 	}
 
-	button.open {
+	button.searchOpen {
 		width: 75%;
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		transition: width 0.3s ease-in-out;
@@ -61,7 +61,7 @@
 		height: 2rem;
 	}
 
-	button.open input {
+	button.searchOpen input {
 		width: inherit;
 		margin: 0.5rem;
 		margin-left: 1rem;
@@ -73,7 +73,7 @@
 		margin: auto;
 	}
 
-	button.open img {
+	button.searchOpen img {
 		margin-left: 1rem;
 		transition: margin 0.3s ease-in-out;
 	}

@@ -7,7 +7,12 @@
     newProfileEvent,
     publishEvent
   } from '../lib/nostr'
-  import { postDictionary, userDictionary, activePost } from '../lib/stores'
+  import { 
+    postDictionary,
+    userDictionary,
+    activePost,
+    queue
+  } from '../lib/stores'
 
   let saving = false
   let modalOpen = false
@@ -24,9 +29,9 @@
   }
 
   onMount(() => {
-    const unsubscribe = activePost.subscribe((hash) => {
-      if (hash) {
-        data = $postDictionary[hash]
+    const unsubscribe = activePost.subscribe((id) => {
+      if (id) {
+        data = $postDictionary[id]
         author = $userDictionary[data.event.pubkey]
         openModal()
       }
@@ -35,6 +40,15 @@
     // This is to prevent memory leaks?
     //onDestroy(unsubscribe)
   })
+
+  const addToQueue = (priority = undefined) => {
+    if (priority === 0) {
+      $queue = [data.audio, ...$queue]
+    } else {
+      $queue.push(data.audio)
+    }
+  }
+
 </script>
 
 <div on:click={closeModal} class:modalOpen class="overlay"></div>
@@ -46,6 +60,10 @@
     <img src="{data.image}" alt="img"/>
     <p>{data.description}</p>
     <a class="author" href="{author?.site || '#'}" target="_blank">-- {author?.name || "Anonymous"}</a>
+    <div class="actions">
+      <button on:click={() => addToQueue(0)}>Play Next</button>
+      <button on:click={() => addToQueue()}>Add to Queue</button>
+    </div>
     <hr>
     <p class="header">Comments</p>
     {#if modalOpen}
@@ -76,6 +94,11 @@
     text-align: right;
     display: block;
     padding: 0.5em;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: row;
   }
 
   .overlay {

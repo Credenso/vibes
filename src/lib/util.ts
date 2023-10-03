@@ -35,3 +35,9 @@ export const prettyDate = (date) => {
     return `${date.toDateString().split(' ').slice(0,3).join(' ')} - ${date.toLocaleString().split(' ')[1].split(':').slice(0,2).join(":")}`
 }
 
+
+export const secondsToTime = (seconds) => {
+    if (!seconds) return "00:00"
+    let minutes = String(Math.floor(seconds / 60)).padStart(2, '0')
+    return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
+}

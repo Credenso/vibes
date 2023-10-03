@@ -42,20 +42,18 @@
   let page = "main"
   let events = []
   let results = undefined
+  let searchOpen = false
 
   let recentPosts = []
 
   let audioPlayer = new Audio()
   audioPlayer.crossOrigin = true
-  let queue = []
+  $: isPlaying = !audioPlayer.paused
 
   let profile = {};
 
   activePost.subscribe((post) => {
     console.log('active post is...', post)
-    //console.log($postDictionary[post])
-    //music.src = $postDictionary[post]?.audio
-    //music.play()
   })
 
   // This either generates new keys and saves
@@ -96,7 +94,7 @@
         // And save it to the postDictionary with the event
         $postDictionary[event.id] = {...eventData, event};
         recentPosts = [event, ...recentPosts.slice(0, 10)]
-        console.log('ipfs data', eventData)
+        //console.log('ipfs data', eventData)
         return eventData
       } else {
         // Assume it's a Hypercore upload.
@@ -114,7 +112,7 @@
 
         $postDictionary[event.id] = {...eventData, event};
         recentPosts = [event, ...recentPosts.slice(0, 10)]
-        console.log('hypercore data', eventData)
+        //console.log('hypercore data', eventData)
         return eventData
       }
       // If it's a user profile...
@@ -189,7 +187,7 @@
 
 <Profile bind:profile />
 
-<Music bind:audioPlayer bind:queue />
+<Music bind:audioPlayer bind:isPlaying bind:searchOpen />
 
 <main>
   <div class="redBorder">
@@ -217,7 +215,7 @@
       </div>
     </div>
   </div>
-  <Search bind:search bind:page />
+  <Search bind:search bind:searchOpen bind:page />
   <footer><b>&copy;redenso</b></footer>
 </main>
 

@@ -13,10 +13,17 @@
 - [x] live updates
 - [x] Investigate Sonar
 - [x] Integrate Hypercore
-- [ ] add music controls - M
+- [x] add music controls - M
+    - [x] fix menu open/close - S
+    - [x] sync pause/play - S
+    - [x] hide controls on load - S
+    - [x] add seeking - M
+
+- [ ] Button QoL - S
 - [ ] implement searching - M
+    - [ ] Add custom NIPs to allow multi-apps
 - [ ] add Collections support - M
-- [ ] Queue songs / Play Now - S
+- [x] Queue songs / Play Now - S
 - [ ] admin keypair / User classes (Admin, creator, fan)
     - [ ] permissions for inviting
     - [ ] permissions for uploading
@@ -27,6 +34,9 @@
 
 # Next Steps - Polish
 - [x] figure out why subscription is sketchy
+- [x] investigate howler.js lib / siriwave
+- [ ] try again with the wave-generator
+- [ ] integrate blurhash
 
 # Next Steps - Decentralization
 - [ ] publish as NIP-78

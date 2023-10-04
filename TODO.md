@@ -19,9 +19,12 @@
     - [x] hide controls on load - S
     - [x] add seeking - M
 
-- [ ] Button QoL - S
-- [ ] implement searching - M
-    - [ ] Add custom NIPs to allow multi-apps
+- [x] Button QoL - S
+- [ ] comment replies - M
+- [ ] implement searching - L
+    - [ ] Add custom NIPs to allow multi-apps - M
+    - [ ] Vibe cloud - M 
+    - [ ] Add "votes" - M
 - [ ] add Collections support - M
 - [x] Queue songs / Play Now - S
 - [ ] admin keypair / User classes (Admin, creator, fan)
@@ -37,6 +40,7 @@
 - [x] investigate howler.js lib / siriwave
 - [ ] try again with the wave-generator
 - [ ] integrate blurhash
+- [ ] password protection (w/ keypair?)
 
 # Next Steps - Decentralization
 - [ ] publish as NIP-78

@@ -20,15 +20,27 @@
   let comments = []
   let newComment = ""
 
+  onMount(() => {
+    // Adds a listener for the Enter button to make a comment.
+    document.onkeydown = async (e) => {
+      e = e || window.event;
+      switch (e.which || e.keyCode) {
+        case 13 : 
+          await handleComment(e)
+          break;
+      }
+    }
+  })
+
   const handleComment = async (e) => {
-    uploading = true
     e.preventDefault()
     if (newComment) {
+      uploading = true
       const commentEvent = newCommentEvent(newComment, event, $keys.publicKey, $keys.privateKey)
       newComment = ""
       await publishEvent($relay, commentEvent)
       uploading = false
-    }
+    } 
   }
 </script>
 
@@ -44,7 +56,7 @@
 {:else}
   <p>No Comments</p>
 {/if}
-<section class="commentBox">
+<form on:submit={handleComment} class="commentBox">
   {#if uploading}
     <div class="deets">
       <p>Posting...</p>
@@ -55,10 +67,10 @@
     </div>
     <div class="deets">
       <textarea name="comment" bind:value="{newComment}" />
-      <button on:click={handleComment}>Comment</button>
+      <button type="submit">Comment</button>
     </div>
   {/if}
-</section>
+</form>
 
 
 <style>
@@ -67,6 +79,11 @@
     border-radius: 0.5em;
     margin-right: 0.5em;
     padding: 0.25em;
+  }
+
+  @keyframes fadeBlue {
+    0%   { background-color: #028A9B; }
+    100% { background-color: #FFFFFF; }
   }
 
   button {

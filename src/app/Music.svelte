@@ -232,6 +232,7 @@
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		height: 3.25em;
 		width: 3.25em;
+		transition: all 0.2s ease-in-out;
 		transition: width 0.2s ease-in-out;
 		transition: left 0.5s ease-in-out;
 		justify-content: center;

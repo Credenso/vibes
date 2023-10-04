@@ -63,6 +63,7 @@
     <div class="actions">
       <button on:click={() => addToQueue(0)}>Play Next</button>
       <button on:click={() => addToQueue()}>Add to Queue</button>
+      <a class="button" href="{data.audio}" download>Download</a>
     </div>
     <hr>
     <p class="header">Comments</p>
@@ -73,10 +74,25 @@
 </div>
 
 <style>
-  button {
+  @keyframes fadeBlue {
+    0%   { background-color: #028A9B; }
+    100% { background-color: #FFFFFF; }
+  }
+
+  button, a.button {
     padding: 0.5em;
-    margin: 0.5em auto;
+    margin: 0.25em;
     border: 1px solid;
+    border-radius: 0.25em;
+    font-size: 0.9em;
+  }
+
+  button:focus, a:focus {
+    animation: fadeBlue 0.7s ease-out;
+  }
+
+  button:active, a:focus {
+    animation: none;
   }
 
   img {

@@ -30,6 +30,7 @@
     postDictionary,
     userDictionary,
     commentsDictionary,
+    repliesDictionary,
     activePost,
     keys,
     relay
@@ -64,7 +65,8 @@
 
   // This is the function responsible for taking event data 
   // and turning it into something that our application can
-  // work with.
+  // work with. 
+  // TODO: Refactor to make more modular
   const processEvent = async (event) => {
     // If this event is a "post"...
     if (event.kind === 1) {
@@ -73,18 +75,35 @@
       // We determine if the post is a comment based on 
       // whether or not it has a "root" tag
       if (event.tags.length > 0 && event.tags.find(t => t[t.length - 1] === "root")) {
-        // First, we get the root post.
-        const original_post = event.tags
-          .find(t => t[t.length - 1] === "root")[1]
 
-        const comments = $commentsDictionary[original_post]
+        if (event.tags.find(t => t[t.length - 1] === "reply")) {
+          // this is a reply, don't add it directly to commentsDictionary
+          const replyingTo = event.tags
+            .find(t => t[t.length - 1] === "reply")[1]
+          const replies = $repliesDictionary[replyingTo]
+          if (replies) {
+            $repliesDictionary[replyingTo] = [...$repliesDictionary[replyingTo], event]
+          } else {
+            $repliesDictionary[replyingTo] = [event]
+          }
 
-        // Then we add the comment to a list of replies
-        // to that specific post
-        if (comments) {
-          $commentsDictionary[original_post] = [...$commentsDictionary[original_post], event]
         } else {
-          $commentsDictionary[original_post] = [event]
+          // It's a top-level comment
+          // First, we get the root post.
+          const original_post = event.tags
+            .find(t => t[t.length - 1] === "root")[1]
+
+          // Here is a top-level comment. We try to get all existing
+          // comments, and then either add to or create that list
+          const comments = $commentsDictionary[original_post]
+
+          // Then we add the comment to a list of replies
+          // to that specific post
+          if (comments) {
+            $commentsDictionary[original_post] = [...$commentsDictionary[original_post], event]
+          } else {
+            $commentsDictionary[original_post] = [event]
+          }
         }
       } else if (event.content.startsWith('Qm') && event.content.length === 46) {
         // If the event is a 46 character string starting with Qm, we assume it's an IPFS link

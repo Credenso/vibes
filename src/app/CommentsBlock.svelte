@@ -2,6 +2,7 @@
   import { 
     postDictionary,
     commentsDictionary,
+    repliesDictionary,
     userDictionary,
     keys,
     relay
@@ -19,6 +20,7 @@
   let uploading = false
   let comments = []
   let newComment = ""
+  let replyingTo = undefined
 
   onMount(() => {
     // Adds a listener for the Enter button to make a comment.
@@ -36,7 +38,7 @@
     e.preventDefault()
     if (newComment) {
       uploading = true
-      const commentEvent = newCommentEvent(newComment, event, $keys.publicKey, $keys.privateKey)
+      const commentEvent = newCommentEvent(newComment, event, $keys.publicKey, $keys.privateKey, replyingTo)
       newComment = ""
       await publishEvent($relay, commentEvent)
       uploading = false
@@ -51,7 +53,18 @@
         <b>{$userDictionary[comment.pubkey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date(comment.created_at * 1000))}</p>
       </div>
       <p class="comment">{comment.content}</p>
+      <small class="replyButton"><a on:click="{() => replyingTo = { id: comment.id, pubkey: comment.pubkey }}">Reply</a></small>
     </section>
+  {#if $repliesDictionary[comment.id]}
+    {#each $repliesDictionary[comment.id] as reply (reply.id)}
+      <section class="commentBox reply">
+        <div class="deets">
+          <b>{$userDictionary[reply.pubkey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date(reply.created_at * 1000))}</p>
+        </div>
+        <p class="comment">{reply.content}</p>
+      </section>
+    {/each}
+  {/if}
   {/each}
 {:else}
   <p>No Comments</p>
@@ -65,6 +78,12 @@
     <div class="deets">
       <b>{$userDictionary[$keys?.publicKey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date())}</p>
     </div>
+    {#if replyingTo}
+    <div class="deets">
+      Replying to {$userDictionary[replyingTo.pubkey]?.name || "Anonymous"}
+      <button class="cancel" on:click={() => replyingTo = undefined}>X</button>
+    </div>
+    {/if}
     <div class="deets">
       <textarea name="comment" bind:value="{newComment}" />
       <button type="submit">Comment</button>
@@ -92,11 +111,25 @@
     align-self: end;
   }
 
+  button.cancel {
+    width: 2em;
+  }
+
   .commentBox {
     border: 2px solid;
     border-radius: 1em;
     margin: 0.5em;
     padding: 0.5em;
+  }
+
+  .replyButton {
+    float: right;
+    padding-right: 0.5em;
+    cursor: pointer;
+  }
+
+  .reply {
+    margin-left: 2em;
   }
 
   .commentBox:nth-child(3n) {

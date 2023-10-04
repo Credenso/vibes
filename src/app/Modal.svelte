@@ -1,5 +1,6 @@
 <script>
   import CommentsBlock from './CommentsBlock.svelte'
+  import TagsBlock from './TagsBlock.svelte'
   import { onMount, onDestroy } from 'svelte'
   import { 
     initRelay,
@@ -65,10 +66,13 @@
       <button on:click={() => addToQueue()}>Add to Queue</button>
       <a class="button" href="{data.audio}" download>Download</a>
     </div>
-    <hr>
-    <p class="header">Comments</p>
     {#if modalOpen}
+      <hr>
+      <p class="header">Comments</p>
       <CommentsBlock event={data.event.id} />
+      <hr>
+      <p class="header">Vibes</p>
+      <TagsBlock />
     {/if}
   {/if}
 </div>

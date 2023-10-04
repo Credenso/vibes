@@ -143,16 +143,28 @@ export const newCommentEvent = (
     post_id: string,
     public_key: string,
     private_key: string,
-    replying_to = ""
+    replying_to = { id: undefined, pubkey: undefined }
 ) => {
     // We always use this tag in comments
+    let pubkeys = [Tag.pubkey, public_key]
+    
+    // Add the user being replied to if they exist
+    if (replying_to?.pubkey) pubkeys.push(replying_to.pubkey)
+
     let tags = [
         [Tag.event, post_id, RELAY_URL, "root"]
     ]
-    return genericEvent(Kind.post, comment, public_key, private_key, [
-        [Tag.event, post_id, RELAY_URL, "root"],
-        [Tag.pubkey, public_key],
-    ]);
+
+    // Add the 'reply' tag if it's a reply
+    if (replying_to?.id) tags.push([Tag.event, replying_to.id, RELAY_URL, "reply"])
+
+    return genericEvent(
+        Kind.post, 
+        comment, 
+        public_key, 
+        private_key, 
+        tags
+    );
 };
 
 // --- Relay / Event Management ---

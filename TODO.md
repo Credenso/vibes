@@ -20,27 +20,37 @@
     - [x] add seeking - M
 
 - [x] Button QoL - S
-- [ ] comment replies - M
+- [x] comment replies - M
+
+- [x] file sanitize - S
+
 - [ ] implement searching - L
     - [ ] Add custom NIPs to allow multi-apps - M
     - [ ] Vibe cloud - M 
     - [ ] Add "votes" - M
+
 - [ ] add Collections support - M
 - [x] Queue songs / Play Now - S
 - [ ] admin keypair / User classes (Admin, creator, fan)
     - [ ] permissions for inviting
     - [ ] permissions for uploading
+
 - [ ] upgrade upload screen - M
     - [ ] resize uploaded images - S
     - [ ] upload preview - S 
     - [ ] overhaul UI - S
 
 # Next Steps - Polish
+- [ ] Better Image Loading - L
+    - [ ] Remote Solar Signing?
+    - [ ] Blurhash images - M
+
 - [x] figure out why subscription is sketchy
 - [x] investigate howler.js lib / siriwave
 - [ ] try again with the wave-generator
 - [ ] integrate blurhash
-- [ ] password protection (w/ keypair?)
+- [ ] password protection (w/ keypear?)
+- [ ] sanitize filenames (#, ?)
 
 # Next Steps - Decentralization
 - [ ] publish as NIP-78

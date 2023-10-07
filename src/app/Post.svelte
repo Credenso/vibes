@@ -2,26 +2,27 @@
   import { 
     postDictionary,
     userDictionary,
+    contentDictionary,
     activeSong,
     activePost 
   } from '../lib/stores'
 
   export let postId
   export let image
-  let content = undefined
+  let post = undefined
   let name
   let author
   let currentlyPlaying = false
 
   postDictionary.subscribe(() => {
-    content = $postDictionary[postId]
-    if (content) {
-      author = $userDictionary[content.event.pubkey]
+    post = $postDictionary[postId]
+    if (post) {
+      author = $userDictionary[post.pubkey]
     }
   })
 
   activeSong.subscribe((song) => {
-    if (song && song === content?.audio) {
+    if (song && song === $contentDictionary[post?.content?.audio]) {
       currentlyPlaying = true
     } else {
       currentlyPlaying = false
@@ -33,8 +34,8 @@
   }
 
   const playSong = () => {
-    if (content) {
-      activeSong.set(content.audio)
+    if (post.content) {
+      activeSong.set($contentDictionary[post.content.audio])
     }
   }
 </script>
@@ -48,7 +49,7 @@
       <img src="play.png">
     </div>
     <section class="about" on:click={setActive}>
-    <div class="name">{ content?.name }</div>
+    <div class="name">{ post?.content?.name }</div>
     <div class="artist">{ author?.name || 'Anonymous' }</div>
     </section>
   </div>

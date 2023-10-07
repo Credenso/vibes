@@ -3,7 +3,7 @@
 </script>
 
 <nav>
-  <button on:click={() => page = "main"}><img src='/vibes_logo.svg' alt="Vibes" id="navLogo"></button>
+  <button on:click={() => page = "main"}><img src='vibes_logo.svg' alt="Vibes" id="navLogo"></button>
 </nav>
 
 <style>

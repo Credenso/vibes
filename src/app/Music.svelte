@@ -36,7 +36,7 @@
 	  // We save the initial x-coordinate of the mouse
 	  // so that we can see how much we've moved for the
 	  // progress bar
-	  seeking = e.clientX
+	  seeking = e.clientX || e.touches[0].clientX
 	  const menuWidth = document.querySelector('#musicMenu').clientWidth
 	  const progressWidth = document.querySelector('#background').clientWidth
 
@@ -60,7 +60,8 @@
 
   const moveProgressBar = (e) => {
 	  const menuWidth = document.querySelector('#musicMenu').clientWidth
-	  const diff = e.clientX - seeking
+	  const currentLocation = e.clientX || e.touches[0].clientX
+	  const diff = currentLocation - seeking
 	  seekResult = Math.ceil((seeking + diff) * 100 / menuWidth)
 
 	  // Sometimes seekResult returns NaN, we skip those
@@ -237,6 +238,7 @@
 		transition: left 0.5s ease-in-out;
 		justify-content: center;
 		border: 2px solid white;
+		column-gap: 0.5em;
 	}
 
 	button.hasAppeared {
@@ -248,6 +250,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		height: 100%;
 		z-index: 105;
 	}
 
@@ -299,6 +302,7 @@
 
 	button.open {
 		width: 75%;
+		max-width: 40em;
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		transition: width 0.3s ease-in-out;
 	}

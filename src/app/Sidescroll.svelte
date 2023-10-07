@@ -1,5 +1,5 @@
 <script>
-	import { postDictionary, userDictionary } from '../lib/stores'
+	import { postDictionary, contentDictionary } from '../lib/stores'
 	import { preload } from '../lib/util'
     
 	import Post from '../app/Post.svelte'
@@ -7,6 +7,8 @@
 	export let title;
 	export let posts;
 	export let color = "red";
+
+    $: posts, console.log('these posts', posts)
 </script>
 
 <div class="sectionHeader {color}">
@@ -17,7 +19,7 @@
 	{#each posts as event (event.id)}
       <Post 
         postId="{event.id}"
-        image="{$postDictionary[event.id]?.image}"
+        image="{$contentDictionary[event.content.image]}"
         />
 	{/each}
   {/if}

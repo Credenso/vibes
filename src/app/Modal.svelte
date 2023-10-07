@@ -11,13 +11,14 @@
   import { 
     postDictionary,
     userDictionary,
+    contentDictionary,
     activePost,
     queue
   } from '../lib/stores'
 
   let saving = false
   let modalOpen = false
-  let data
+  let event
   let author
 
   const openModal = () => {
@@ -32,8 +33,8 @@
   onMount(() => {
     const unsubscribe = activePost.subscribe((id) => {
       if (id) {
-        data = $postDictionary[id]
-        author = $userDictionary[data.event.pubkey]
+        event = $postDictionary[id]
+        author = $userDictionary[event.pubkey]
         openModal()
       }
     })
@@ -43,10 +44,11 @@
   })
 
   const addToQueue = (priority = undefined) => {
+    const audio = $contentDictionary[event.content.audio]
     if (priority === 0) {
-      $queue = [data.audio, ...$queue]
+      $queue = [audio, ...$queue]
     } else {
-      $queue.push(data.audio)
+      $queue.push(audio)
     }
   }
 
@@ -55,21 +57,21 @@
 <div on:click={closeModal} class:modalOpen class="overlay"></div>
 
 <div class:modalOpen class="modal">
-  {#if data}
-    <p class="header">{data.name}</p>
-    <small>posted {new Date(data.event.created_at * 1000).toDateString()}</small>
-    <img src="{data.image}" alt="img"/>
-    <p>{data.description}</p>
+  {#if event}
+    <p class="header">{event.content.name}</p>
+    <small>posted {new Date(event.created_at * 1000).toDateString()}</small>
+    <img src="{$contentDictionary[event.content.image]}" alt="img"/>
+    <p>{event.content.description}</p>
     <a class="author" href="{author?.site || '#'}" target="_blank">-- {author?.name || "Anonymous"}</a>
     <div class="actions">
       <button on:click={() => addToQueue(0)}>Play Next</button>
       <button on:click={() => addToQueue()}>Add to Queue</button>
-      <a class="button" href="{data.audio}" download>Download</a>
+      <a class="button" href="{$contentDictionary[event.content.audio]}" download>Download</a>
     </div>
     {#if modalOpen}
       <hr>
       <p class="header">Comments</p>
-      <CommentsBlock event={data.event.id} />
+      <CommentsBlock event={event.id} />
       <hr>
       <p class="header">Vibes</p>
       <TagsBlock />

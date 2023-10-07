@@ -21,7 +21,7 @@
 </script>
 
 <div class="loading">
-	<img class="loadingVinyl" src="/vinyl.png" alt="vinyl">
+	<img class="loadingVinyl" src="vinyl.png" alt="vinyl">
 	<p class="quip">{loadingPhrase}</p>
 </div>
 

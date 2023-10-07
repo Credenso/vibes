@@ -83,6 +83,26 @@ const genericEvent = (
     }
 };
 
+export const signEvent = (unsignedEvent, private_key) => {
+    const id = getEventHash(unsignedEvent);
+    const sig = getSignature(unsignedEvent, private_key);
+
+    const signedEvent = {
+        ...unsignedEvent,
+        id,
+        sig,
+    };
+
+    let ok = validateEvent(signedEvent);
+    let veryOk = verifySignature(signedEvent);
+
+    if (ok) {
+        return finishEvent(signedEvent, private_key);
+    } else {
+        return null;
+    }
+}
+
 // TODO: Refactor this to accord to NIPs
 // Likes are Kind 7 (NIP-25)
 // Profile is extended by NIP-39
@@ -259,7 +279,7 @@ export const publishEvent = async (
     relay: Relay,
     event: VerifiedEvent<number>
 ) => {
-    if (event) {
+    if (event !== undefined) {
         await relay.publish(event);
     }
 };

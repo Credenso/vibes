@@ -5,36 +5,60 @@
   } from '../lib/stores'
 
   import { uploadSong } from '../lib/ipfs'
-  import { newPostEvent, publishEvent } from '../lib/nostr'
+  import { 
+    newPostEvent,
+    publishEvent,
+    signEvent
+  } from '../lib/nostr'
   import { preload } from '../lib/util'
 
   import Post from '../app/Post.svelte'
 
   export let keys
+  export let page
   let uploading = false
 
   const handleUpload = async (e) => {
     e.preventDefault()
+    uploading = true
     const data = new FormData(e.currentTarget)
-    console.log('formdata', data)
     let content = {
       name: undefined,
       audio: undefined,
       image: undefined,
       description: undefined
     }
-    const results = await fetch("http://localhost:8002/upload", {
+    const results = await fetch("http://solar.credenso.cafe/upload", {
       method: "POST",
       body: data
     }).then(response => response.json()
-      .then(json => {
-        content.audio = json.audio;
-        content.image = json.image;
+      .then(async json => {
+        const ids = Promise.all(json.map(async event => {
+          const mimetype = event.tags.find(tag => tag[0] === "m")[1]
+          const e = signEvent(event, keys.privateKey)
+          await publishEvent($relay, e)
+          if (mimetype.startsWith('audio')) {
+            content.audio = e.id
+          } else if (mimetype.startsWith('image')) {
+            content.image = e.id
+          }
+          console.log(e)
+          return e.id
+        }))
+
+        console.log(await ids)
+        console.log(content)
+
         content.name = data.get('name');
         content.description = data.get('desc');
 
         const event = newPostEvent(JSON.stringify(content), keys.publicKey, keys.privateKey)
-        publishEvent($relay, event)
+        console.log('publishing event', event)
+        await publishEvent($relay, event)
+
+        // Navigate home
+        uploading = false
+        page = "main"
       }))
   }
 
@@ -45,11 +69,11 @@
   <input type="hidden" name="pubkey" value={keys.publicKey} />
   <div class="formEntry">
     <label for="formSong">Song.</label>
-    <input type="file" id="formSong" name="song" />
+    <input type="file" accept="audio/*" id="formSong" name="song" />
   </div>
   <div class="formEntry">
     <label for="formPic">Art.</label>
-    <input type="file" id="formPic" name="icon" />
+    <input type="file" accept="image/*" id="formPic" name="icon" />
   </div>
   <div class="formEntry">
     <label for="formName">Name.</label>
@@ -61,7 +85,11 @@
   </div>
   <br/>
   <br/>
-  <button type="submit">Upload</button>
+  {#if uploading}
+    <button type="submit" disabled>Uploading...</button>
+  {:else}
+    <button type="submit">Upload</button>
+  {/if}
 </form>
 
 

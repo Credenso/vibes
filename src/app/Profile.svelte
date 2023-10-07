@@ -7,7 +7,7 @@
     newProfileEvent,
     publishEvent
   } from '../lib/nostr'
-  import { userDictionary, keys } from '../lib/stores'
+  import { userDictionary, keys, relay } from '../lib/stores'
 
   // For hashing the privateKey
   import b4a from 'b4a'
@@ -50,19 +50,19 @@
       const sig = b4a.toString(sigArray, 'hex')
 
       // This will be a request to the Solar server they specify
-      const key = await fetch("http://localhost:8002/register", {
+      const key = await fetch("http://solar.credenso.cafe/register", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain"
         },
         body: JSON.stringify({ pubKey, sig })
       })
-
+      console.log('registration complete')
       metadata.drive = await key.text()
+      console.log('drive', metadata.drive)
     }
-    const relay = await initRelay(RELAY_URL)
     let profileEvent = newProfileEvent(metadata, $keys.publicKey, $keys.privateKey)
-    publishEvent(relay, profileEvent)
+    publishEvent($relay, profileEvent)
       .then(res => {
         saving = false
         closeProfile()
@@ -70,7 +70,7 @@
   }
 </script>
 
-<img on:click={openProfile} src="/profile_photo.png" alt="profile" />
+<img on:click={openProfile} src="profile_photo.png" alt="profile" />
 
 <div on:click={closeProfile} class:modalOpen class="overlay"></div>
 
@@ -83,7 +83,7 @@
     </div>
     <div class="formEntry">
       <label for="site">Site. </label>
-      <input type="text" id="site" placeholder="https://my.site" bind:value={profile.site} />
+      <input type="text" id="site" placeholder="https://solar.credenso.cafe" bind:value={profile.site} />
     </div>
     <div class="formEntry">
       <label for="artist">I want to publish content!</label>
@@ -92,7 +92,7 @@
     {#if profile.isArtist}
       <div class="formEntry">
         <label for="system">System.</label>
-        <input type="text" id="site" placeholder="https://solar.my.site" bind:value={profile.solarServer} />
+        <input type="text" id="site" placeholder="https://solar.credenso.cafe" bind:value={profile.solarServer} />
       </div>
       {#if profile.solarKey}
         <div class="formEntry">

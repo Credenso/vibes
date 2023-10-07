@@ -16,7 +16,6 @@
   import { onMount, onDestroy } from 'svelte'
   import { 
     initRelay,
-    RELAY_URL,
     getPosts,
     getUsers,
     getEvents,
@@ -29,12 +28,15 @@
   import { 
     postDictionary,
     userDictionary,
+    contentDictionary,
     commentsDictionary,
     repliesDictionary,
     activePost,
     keys,
     relay
   } from './lib/stores.js'
+
+  const staticEndpoint = "/content"
 
   // State Variables
   let loading = true
@@ -62,6 +64,8 @@
   // ones that are already there.
   // It isn't secure, but it works for now.
   $keys = unsecuredLocalKeys()
+
+
 
   // This is the function responsible for taking event data 
   // and turning it into something that our application can
@@ -105,34 +109,24 @@
             $commentsDictionary[original_post] = [event]
           }
         }
-      } else if (event.content.startsWith('Qm') && event.content.length === 46) {
-        // If the event is a 46 character string starting with Qm, we assume it's an IPFS link
-        // So, we get the data from IPFS,
-        const eventData = await getSong(event.content);
+        // I might reconsider IPFS, but I'm removing it for now.
+        //} else if (event.content.startsWith('Qm') && event.content.length === 46) {
+        //  // If the event is a 46 character string starting with Qm, we assume it's an IPFS link
+        //  // So, we get the data from IPFS,
 
-        // And save it to the postDictionary with the event
-        $postDictionary[event.id] = {...eventData, event};
-        recentPosts = [event, ...recentPosts.slice(0, 10)]
-        //console.log('ipfs data', eventData)
-        return eventData
+        //  const eventData = await getSong(event.content);
+
+        //  // And save it to the postDictionary with the event
+        //  $postDictionary[event.id] = {...eventData, event};
+        //  recentPosts = [event, ...recentPosts.slice(0, 10)]
+        //  //console.log('ipfs data', eventData)
+        //  return eventData
       } else {
-        // Assume it's a Hypercore upload.
-        let eventData = undefined
-        try {
-          eventData = JSON.parse(event.content)
-        } catch (SyntaxError) {
-          eventData = undefined
-        }
-
-        if (eventData) {
-          eventData.audio = `http://localhost/content/${event.pubkey}/${eventData.audio}`
-          eventData.image = `http://localhost/content/${event.pubkey}/${eventData.image}`
-        }
-
-        $postDictionary[event.id] = {...eventData, event};
+        event.content = JSON.parse(event.content)
+        $postDictionary[event.id] = event
         recentPosts = [event, ...recentPosts.slice(0, 10)]
+
         //console.log('hypercore data', eventData)
-        return eventData
       }
       // If it's a user profile...
     } else if (event.kind === 0) {
@@ -148,6 +142,10 @@
       }
 
       return {...content, "pubkey": event.pubkey };
+    } else if (event.kind === 1063) {
+      console.log('found content!')
+      let content = event.tags.find(t => t[0] === "url")[1]
+      $contentDictionary[event.id] = `${staticEndpoint}${content}`;
     }
   }
 
@@ -156,16 +154,16 @@
   // events and associated data into memory so they can be
   // processed without further latency
   onMount(async () => {
-    $relay = await initRelay(RELAY_URL)
-    events = await getEvents($relay, [{ kinds: [0, 1] }]);
+    $relay = await initRelay('ws://relay.localhost')
+    events = await getEvents($relay, [{ kinds: [0, 1, 1063] }]);
 
     // I don't think we need this value for anything,
     // but we can await it.
-    results = Promise.all(events.map(async (event) => processEvent(event)))
+    results = await Promise.all(events.map(async (event) => processEvent(event)))
 
     let sub = $relay.sub([
       {
-        kinds: [0,1],
+        kinds: [0,1, 1063],
         since: Math.floor(Date.now() / 1000)
       }
     ])
@@ -175,6 +173,11 @@
       processEvent(event)
     })
 
+    // Query for events every 30 seconds to keep the connection alive
+    window.setInterval(async () => {
+    events = await getEvents($relay, [{ kinds: [0] }]);
+    Promise.all(events.map(async (event) => processEvent(event)))
+    }, 1000 * 30)
   });
 
   // This waits until the content is loaded before it displays
@@ -200,7 +203,6 @@
   <button on:click={() => navTo("main")}>Home</button>
   {#if profile.isArtist}
     <button on:click={() => navTo("upload")}>Upload</button>
-    <button on:click={() => navTo("ipfs-upload")}>IPFS Upload</button>
   {/if}
 </Sidebar>
 
@@ -224,9 +226,7 @@
             bind:posts={recentPosts}
             />
           {:else if page === "upload"}
-            <Upload bind:keys={$keys} />
-          {:else if page === "ipfs-upload"}
-            <IPFSUpload bind:keys={$keys} />
+            <Upload bind:page bind:keys={$keys} />
           {:else if page === "search"}
             <p>Searching for {search}</p>
           {/if}
@@ -235,7 +235,7 @@
     </div>
   </div>
   <Search bind:search bind:searchOpen bind:page />
-  <footer><b>&copy;redenso</b></footer>
+  <footer><a href="https://credenso.cafe"><b>&copy;redenso</b></a></footer>
 </main>
 
 <style>

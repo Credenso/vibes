@@ -71,10 +71,10 @@
     {#if modalOpen}
       <hr>
       <p class="header">Comments</p>
-      <CommentsBlock event={event.id} />
+      <CommentsBlock event={event} />
       <hr>
       <p class="header">Vibes</p>
-      <TagsBlock />
+      <TagsBlock bind:event />
     {/if}
   {/if}
 </div>

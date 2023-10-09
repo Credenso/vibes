@@ -7,8 +7,6 @@
 	export let title;
 	export let posts;
 	export let color = "red";
-
-    $: posts, console.log('these posts', posts)
 </script>
 
 <div class="sectionHeader {color}">

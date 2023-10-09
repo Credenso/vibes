@@ -49,6 +49,7 @@ interface Event {
     tags: string[][]
 }
 
+// TODO: Should separate the signing and validation process
 const genericEvent = (
     kind: number,
     content: string,
@@ -83,12 +84,29 @@ const genericEvent = (
     }
 };
 
-export const signEvent = (unsignedEvent, private_key) => {
-    const id = getEventHash(unsignedEvent);
-    const sig = getSignature(unsignedEvent, private_key);
+const genericUnsignedEvent = (
+    kind: number,
+    content: string,
+    public_key: string,
+    tags: string[][]
+) => {
+    const unsignedEvent: UnsignedEvent<number> = {
+        kind: kind,
+        pubkey: public_key,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: tags,
+        content: content,
+    };
+
+    return unsignedEvent
+}
+
+export const signEvent = (event: UnsignedEvent, private_key: string) => {
+    const id = getEventHash(event);
+    const sig = getSignature(event, private_key);
 
     const signedEvent = {
-        ...unsignedEvent,
+        ...event,
         id,
         sig,
     };
@@ -104,7 +122,7 @@ export const signEvent = (unsignedEvent, private_key) => {
 }
 
 // TODO: Refactor this to accord to NIPs
-// Likes are Kind 7 (NIP-25)
+// Reactions are Kind 7 (NIP-25)
 // Profile is extended by NIP-39
 // Auth is important! NIP-42
 // Kind 30078 for Vibes data (NIP-78)
@@ -113,8 +131,9 @@ export enum Kind {
     "profile" = 0,
     "post" = 1,
     "album" = 2,
-    "like" = 3,
-    "follow" = 5,
+    "follow" = 5, //??
+    "reaction" = 7,
+    "vibe" = 1618,
 }
 
 // TODO: Refactor this to accord to NIPs
@@ -137,7 +156,7 @@ export const newPostEvent = (
     public_key: string,
     private_key: string
 ) => {
-    return genericEvent(Kind.post, ipfs_link, public_key, private_key, []);
+    return genericEvent(Kind.vibe, ipfs_link, public_key, private_key, []);
 };
 
 export const newCollectionEvent = (
@@ -148,25 +167,32 @@ export const newCollectionEvent = (
     return genericEvent(Kind.album, ipfs_link, public_key, private_key, []);
 };
 
-export const newLikeEvent = (
-    post_id: string,
+export const newReactionEvent = (
+    reaction: string,
     public_key: string,
-    private_key: string
+    post: VerifiedEvent
 ) => {
-    return genericEvent(Kind.like, "", public_key, private_key, [
-        ["post", post_id],
-    ]);
+    return genericUnsignedEvent(
+        Kind.reaction, 
+        reaction, 
+        public_key, 
+        [
+            [Tag.event, post.id],
+            [Tag.pubkey, post.pubkey]
+        ]
+    );
 };
 
 export const newCommentEvent = (
     comment: string,
     post_id: string,
+    post_pubkey: string,
     public_key: string,
     private_key: string,
     replying_to = { id: undefined, pubkey: undefined }
 ) => {
     // We always use this tag in comments
-    let pubkeys = [Tag.pubkey, public_key]
+    let pubkeys = [Tag.pubkey, post_pubkey]
     
     // Add the user being replied to if they exist
     if (replying_to?.pubkey) pubkeys.push(replying_to.pubkey)

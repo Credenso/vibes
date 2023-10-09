@@ -5,8 +5,8 @@
   import Profile from './app/Profile.svelte'
   import Post from './app/Post.svelte'
   import Search from './app/Search.svelte'
+  import Results from './app/Results.svelte'
   import Upload from './app/Upload.svelte'
-  import IPFSUpload from './app/IPFSUpload.svelte'
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
   import Modal from './app/Modal.svelte'
@@ -30,6 +30,7 @@
     userDictionary,
     contentDictionary,
     commentsDictionary,
+    vibesDictionary,
     repliesDictionary,
     activePost,
     keys,
@@ -45,7 +46,9 @@
   let page = "main"
   let events = []
   let results = undefined
+
   let searchOpen = false
+  let tags = []
 
   let recentPosts = []
 
@@ -65,20 +68,17 @@
   // It isn't secure, but it works for now.
   $keys = unsecuredLocalKeys()
 
-
-
   // This is the function responsible for taking event data 
   // and turning it into something that our application can
   // work with. 
   // TODO: Refactor to make more modular
   const processEvent = async (event) => {
-    // If this event is a "post"...
     if (event.kind === 1) {
-      // Then we need to decide if it's a media post or a comment.
+      // Comment / Reply
 
       // We determine if the post is a comment based on 
       // whether or not it has a "root" tag
-      if (event.tags.length > 0 && event.tags.find(t => t[t.length - 1] === "root")) {
+      if (event.tags.find(t => t[t.length - 1] === "root")) {
 
         if (event.tags.find(t => t[t.length - 1] === "reply")) {
           // this is a reply, don't add it directly to commentsDictionary
@@ -109,27 +109,9 @@
             $commentsDictionary[original_post] = [event]
           }
         }
-        // I might reconsider IPFS, but I'm removing it for now.
-        //} else if (event.content.startsWith('Qm') && event.content.length === 46) {
-        //  // If the event is a 46 character string starting with Qm, we assume it's an IPFS link
-        //  // So, we get the data from IPFS,
-
-        //  const eventData = await getSong(event.content);
-
-        //  // And save it to the postDictionary with the event
-        //  $postDictionary[event.id] = {...eventData, event};
-        //  recentPosts = [event, ...recentPosts.slice(0, 10)]
-        //  //console.log('ipfs data', eventData)
-        //  return eventData
-      } else {
-        event.content = JSON.parse(event.content)
-        $postDictionary[event.id] = event
-        recentPosts = [event, ...recentPosts.slice(0, 10)]
-
-        //console.log('hypercore data', eventData)
       }
-      // If it's a user profile...
     } else if (event.kind === 0) {
+      // User Profile
       //let tags = event.tags.reduce((object, tag) => {...object, [tag[0]]: tag[1] }, {})
       let content = JSON.parse(event.content);
       $userDictionary[event.pubkey] = content;
@@ -142,10 +124,39 @@
       }
 
       return {...content, "pubkey": event.pubkey };
+    } else if (event.kind === 7) {
+      // Reaction
+      const post_id = event.tags.find(t => t[0] === "e")[1]
+      const reaction = event.content 
+
+      // This might be a waste of compute
+      if (!tags.includes(reaction)) tags.push(reaction)
+
+      const vibes = $vibesDictionary[post_id]
+      // If we already have a list for the reactions
+      if (vibes && vibes[reaction]) {
+        vibes[reaction] = [...vibes[reaction], event.pubkey]
+        $vibesDictionary[post_id] = vibes
+
+      // If we have a dictionary for the post, but
+      // this is the first reaction of the type
+      } else if (vibes) {
+        vibes[reaction] = [event.pubkey]
+        $vibesDictionary[post_id] = vibes
+
+      // Otherwise, we need to create the entry
+      } else {
+        $vibesDictionary[post_id] = { [reaction]: [event.pubkey] }
+      }
     } else if (event.kind === 1063) {
-      console.log('found content!')
+      // Content (file)
       let content = event.tags.find(t => t[0] === "url")[1]
       $contentDictionary[event.id] = `${staticEndpoint}${content}`;
+    } else if (event.kind === 1618) {
+      console.log('found vibe!')
+      event.content = JSON.parse(event.content)
+      $postDictionary[event.id] = event
+      recentPosts = [event, ...recentPosts.slice(0, 10)]
     }
   }
 
@@ -155,7 +166,7 @@
   // processed without further latency
   onMount(async () => {
     $relay = await initRelay('ws://relay.localhost')
-    events = await getEvents($relay, [{ kinds: [0, 1, 1063] }]);
+    events = await getEvents($relay, [{ kinds: [0, 1, 7, 1063, 1618] }]);
 
     // I don't think we need this value for anything,
     // but we can await it.
@@ -163,7 +174,7 @@
 
     let sub = $relay.sub([
       {
-        kinds: [0,1, 1063],
+        kinds: [0,1, 7, 1063, 1618],
         since: Math.floor(Date.now() / 1000)
       }
     ])
@@ -173,7 +184,7 @@
       processEvent(event)
     })
 
-    // Query for events every 30 seconds to keep the connection alive
+    // Make a query every 30 seconds to keep the connection alive
     window.setInterval(async () => {
     events = await getEvents($relay, [{ kinds: [0] }]);
     Promise.all(events.map(async (event) => processEvent(event)))
@@ -218,8 +229,8 @@
           <Loading />
         {/if}
         <section class="is-preload">
-          {#if page === "main"}
           <Modal />
+          {#if page === "main"}
           <Sidescroll 
             title="Recently posted."
             color="red"
@@ -228,7 +239,7 @@
           {:else if page === "upload"}
             <Upload bind:page bind:keys={$keys} />
           {:else if page === "search"}
-            <p>Searching for {search}</p>
+            <Results bind:search bind:tags />
           {/if}
         </section>
       </div>
@@ -259,45 +270,6 @@
     transition: none;
   }
 
-
-  .sideScroll {
-    display: flex;
-    overflow-x: scroll;
-    scrollbar-width: none;
-    width: 100%;
-  }
-
-  sideScroll::-webkit-scrollbar{
-    display: none;
-  }
-
-  .sectionHeader {
-    color: white;
-    width: 75%;
-    border-radius: 0 1em 1em 0;
-    position: relative;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    padding: 0.3rem;
-    max-width: 20em;
-    font-size: min(1.5em, 4.5vw);
-  }
-
-  .red {
-    background: #de5a5a;
-    transform: translateX(-20px);
-  }
-
-  .orange {
-    background: #f8a147;
-    transform: translateX(-15px);
-  }
-
-  .blue {
-    background: #028a9b;
-    transform: translateX(-10px);
-  }
-
   .blueBorder {
     margin: -4px;
     padding: 0;
@@ -317,14 +289,14 @@
     margin: -2px;
     padding: 0;
     border: 22px solid #de5a5a;
-    border-bottom-width: 3em;
-    margin-bottom: -2.2em;
+    border-bottom-width: 4em;
+    margin-bottom: -3em;
   }
 
   footer {
     position: static;
     color: white;
-    height: 2em;
+    height: 3em;
     width: 100%;
     margin: auto;
     padding-bottom: 0.5em;

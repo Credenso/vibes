@@ -38,16 +38,17 @@
     e.preventDefault()
     if (newComment) {
       uploading = true
-      const commentEvent = newCommentEvent(newComment, event, $keys.publicKey, $keys.privateKey, replyingTo)
+      const commentEvent = newCommentEvent(newComment, event.id, event.pubkey, $keys.publicKey, $keys.privateKey, replyingTo)
       newComment = ""
+      replyingTo = undefined
       await publishEvent($relay, commentEvent)
       uploading = false
     } 
   }
 </script>
 
-{#if $commentsDictionary[event]}
-  {#each $commentsDictionary[event] as comment (comment.id)}
+{#if $commentsDictionary[event.id]}
+  {#each $commentsDictionary[event.id] as comment (comment.id)}
     <section class="commentBox">
       <div class="deets">
         <b>{$userDictionary[comment.pubkey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date(comment.created_at * 1000))}</p>

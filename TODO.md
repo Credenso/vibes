@@ -24,10 +24,11 @@
 
 - [x] file sanitize - S
 
-- [ ] implement searching - L
-    - [ ] Add custom NIPs to allow multi-apps - M
-    - [ ] Vibe cloud - M 
-    - [ ] Add "votes" - M
+- [x] implement searching - L
+    - [x] Add custom NIPs to allow multi-apps - M
+    - [x] Add "votes" - M
+    - [x] Vibe cloud - M 
+    - [x] Show results - S
 
 - [ ] add Collections support - M
 - [x] Queue songs / Play Now - S
@@ -37,7 +38,8 @@
 
 - [ ] upgrade upload screen - M
     - [ ] resize uploaded images - S
-    - [ ] upload preview - S 
+    - [x] upload preview - S 
+    - [ ] post preview - S 
     - [ ] overhaul UI - S
 
 # Next Steps - Polish

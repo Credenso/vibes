@@ -29,7 +29,7 @@
 <style>
 	aside {
 		position: fixed;
-		width: 50%;
+		width: 20em;
 		height: 100%;
 		background-color: #EEEEEE;
 		border-right-width: 2px;

@@ -28,7 +28,6 @@
   const getRelevantPosts = (search) => {
     let scores = {}
     Object.keys($vibesDictionary).forEach(post => {
-      //console.log('post', $vibesDictionary[post])
       const score = $vibesDictionary[post][search]?.length
       if (score) {
         scores[post] = score
@@ -47,4 +46,8 @@
     bind:posts={results[tag]}
     />
 {/each}
+{#if relevantTags.length === 0}
+  <p>No results!</p>
+  <p>Try looking for...</p>
+{/if}
 

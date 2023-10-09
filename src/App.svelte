@@ -153,7 +153,6 @@
       let content = event.tags.find(t => t[0] === "url")[1]
       $contentDictionary[event.id] = `${staticEndpoint}${content}`;
     } else if (event.kind === 1618) {
-      console.log('found vibe!')
       event.content = JSON.parse(event.content)
       $postDictionary[event.id] = event
       recentPosts = [event, ...recentPosts.slice(0, 10)]

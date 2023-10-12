@@ -4,7 +4,8 @@
     userDictionary,
     contentDictionary,
     activeSong,
-    activePost 
+    activePost,
+    queue
   } from '../lib/stores'
 
   export let postId
@@ -13,19 +14,54 @@
   let name
   let author
   let currentlyPlaying = false
+  let postType
+
+  // This is a list of all the audio contents specified by the post
+  let tracks = undefined
+
+  // So, in my silliness, I decided to mix together IDs for
+  // File Posts and Single posts. If it's a collection, we need
+  // to figure out which one it is.
+  const getTracks = () => {
+    tracks = []
+    post.content.audio.forEach((id,i) => {
+      // If there's a matching post for the ID, pull its audio file
+      if ($postDictionary[id]) {
+        tracks.push($postDictionary[id]?.content.audio)
+      } else {
+        tracks.push(id)
+      }
+    })
+  }
 
   postDictionary.subscribe(() => {
     post = $postDictionary[postId]
-    if (post) {
+
+    // We only want to update this once
+    if (post && postType === undefined) {
       author = $userDictionary[post.pubkey]
+      postType = post.content.type
+      if (postType === "collection") {
+        getTracks()
+      }
     }
   })
 
   activeSong.subscribe((song) => {
-    if (song && song === $contentDictionary[post?.content?.audio]) {
-      currentlyPlaying = true
-    } else {
+    if (postType === "single") {
+      if (song && song === $contentDictionary[post?.content?.audio]) {
+        currentlyPlaying = true
+      } else {
+        currentlyPlaying = false
+      }
+
+    } else if (postType === "collection") {
       currentlyPlaying = false
+      tracks.forEach((id) => {
+        if (song === $contentDictionary[id]) {
+          currentlyPlaying = true
+        }
+      })
     }
   })
 
@@ -33,19 +69,34 @@
     activePost.set(postId)
   }
 
-  const playSong = () => {
-    if (post.content) {
+  const addToQueue = (song_id) => {
+  }
+
+  const play = () => {
+    if (postType === "collection") {
+      tracks.forEach((id,i) => {
+        // If it's the first song, play it. Otherwise, queue it.
+        if (i === 0) {
+          activeSong.set($contentDictionary[id])
+        } else {
+          $queue.push($contentDictionary[id])
+        }
+      })
+    } else if (postType === "single") {
+      // otherwise it's a single, we don't have to worry about
+      // Any of these strange shenannies
       activeSong.set($contentDictionary[post.content.audio])
     }
   }
+
 </script>
 
 <article class="post">
-  <div class="box">
+  <div class="box" class:collection={postType === "collection"}>
     <div class="art">
       <img src="{ image }" alt="vinyl"/>
     </div>
-    <div on:click={playSong} class:currentlyPlaying class="playIcon">
+    <div on:click={play} class:currentlyPlaying class="playIcon">
       <img src="play.png">
     </div>
     <section class="about" on:click={setActive}>
@@ -106,6 +157,11 @@
     flex-direction: column;
     justify-content: space-between;
     padding-bottom: 0.5rem;
+    border: 3px solid #f8a147;
+  }
+
+  .collection {
+    border: 3px solid #028a9b;
   }
 
   .art {

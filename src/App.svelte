@@ -11,6 +11,7 @@
   import Sidescroll from './app/Sidescroll.svelte'
   import Modal from './app/Modal.svelte'
   import Music from './app/Music.svelte'
+  import Chat from './app/Chat.svelte'
 
   // Utilities
   import { onMount, onDestroy } from 'svelte'
@@ -112,7 +113,6 @@
       }
     } else if (event.kind === 0) {
       // User Profile
-      //let tags = event.tags.reduce((object, tag) => {...object, [tag[0]]: tag[1] }, {})
       let content = JSON.parse(event.content);
       $userDictionary[event.pubkey] = content;
 
@@ -153,8 +153,17 @@
       let content = event.tags.find(t => t[0] === "url")[1]
       $contentDictionary[event.id] = `${staticEndpoint}${content}`;
     } else if (event.kind === 1618) {
+      // Post
       event.content = JSON.parse(event.content)
+
+      if (Array.isArray(event.content.audio)) {
+        event.content.type = "collection"
+      } else {
+        event.content.type = "single"
+      }
+
       $postDictionary[event.id] = event
+
       recentPosts = [event, ...recentPosts.slice(0, 10)]
     }
   }
@@ -211,6 +220,7 @@
 <Sidebar bind:open={openMenu}>
   <b>Menu</b>
   <button on:click={() => navTo("main")}>Home</button>
+  <button on:click={() => navTo("chat")}>Chat</button>
   {#if profile.isArtist}
     <button on:click={() => navTo("upload")}>Upload</button>
   {/if}
@@ -219,6 +229,7 @@
 <Profile bind:profile />
 
 <Music bind:audioPlayer bind:isPlaying bind:searchOpen />
+<Search bind:search bind:searchOpen bind:page />
 
 <main>
   <div class="redBorder">
@@ -230,21 +241,23 @@
         <section class="is-preload">
           <Modal />
           {#if page === "main"}
-          <Sidescroll 
-            title="Recently posted."
-            color="red"
-            bind:posts={recentPosts}
-            />
+            <Sidescroll 
+              title="Recent posts."
+              color="red"
+              bind:posts={recentPosts}
+              />
           {:else if page === "upload"}
             <Upload bind:page bind:keys={$keys} />
           {:else if page === "search"}
             <Results bind:search bind:tags />
           {/if}
+          <div class="hidden" class:visible={page === "chat"}>
+            <Chat bind:profile />
+          </div>
         </section>
       </div>
     </div>
   </div>
-  <Search bind:search bind:searchOpen bind:page />
   <footer><a href="https://credenso.cafe"><b>&copy;redenso</b></a></footer>
 </main>
 
@@ -290,6 +303,14 @@
     border: 22px solid #de5a5a;
     border-bottom-width: 4em;
     margin-bottom: -3em;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .visible {
+    display: block;
   }
 
   footer {

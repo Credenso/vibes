@@ -15,8 +15,9 @@
   } from '../lib/nostr'
   import { preload } from '../lib/util'
 
-  import Post from '../app/Post.svelte'
-  import Tags from '../app/Tags.svelte'
+  import Post from './Post.svelte'
+  import Tags from './Tags.svelte'
+  import SongSelector from './SongSelector.svelte'
 
   export let page
   export let keys
@@ -40,9 +41,33 @@
   }
 
   const handleUpload = async (e) => {
-    e.preventDefault()
     uploading = true
     const data = new FormData(e.currentTarget)
+
+
+    // Here, we get a list of all the inputs named "song" and then
+    // make an array with a home for each one.
+    const songInputs = document.querySelectorAll('input[name="song"]')
+    let songIds = new Array(songInputs.length)
+    let songNames = new Array(songInputs.length)
+    songInputs.forEach((input, i) => {
+      const name = document.querySelector(`input[id="name_${input.id}"]`)
+      if (input.type === "file") {
+        // This is the same name replacement that solar uses...
+        // but this might end up being kind of fragile.
+
+        // We use it to replace it with the ID of the event once
+        // it has been signed
+        songIds[i] = input.files[0].name.replaceAll(/[#? ]/g, "")
+        songNames[i] = name.value
+
+      } else if (input.type === "hidden") {
+        // If the input type is hidden, it's the result of
+        // our SongSelector. We grab the id and save it.
+        songIds[i] = input.value
+        songNames[i] = $postDictionary[input.value].content.name
+      }
+    })
 
     let content = {
       name: undefined,
@@ -51,38 +76,69 @@
       description: undefined,
       tags: undefined
     }
+
     const results = await fetch("http://solar.credenso.cafe/upload", {
       method: "POST",
       body: data
     }).then(response => response.json()
       .then(async json => {
+
+        // The json object that is returned by the /upload endpoint
+        // is an array of unsigned events for the user to sign
+        // and publish
         const ids = await Promise.all(json.map(async event => {
           const mimetype = event.tags.find(tag => tag[0] === "m")[1]
           const e = signEvent(event, keys.privateKey)
           await publishEvent($relay, e)
-          if (mimetype.startsWith('audio')) {
-            content.audio = e.id
-          } else if (mimetype.startsWith('image')) {
+
+          // If we find an event with an image mimetype, that
+          // is the art we're using to publish
+          if (mimetype.startsWith('image')) {
             content.image = e.id
           }
-          console.log(e)
+
+          // For each file uploaded, find its place in the songIds
+          // list and replace it with its new ID
+          const formIndex = songIds.indexOf(event.content)
+          if (formIndex !== -1) {
+            songIds[formIndex] = e.id
+          }
+
           return e.id
         }))
 
+        // Set the audio entry to the array of songIds we created
+        content.audio = songIds
+
+        if (content.audio.length > 1) {
+          // If there's multiple audio files, add the names list
+          content.names = songNames
+        } else {
+          // If there's only one audio file, drop the array
+          content.audio = content.audio[0]
+        }
+
+        // Fill the rest of the data from the form
         content.name = data.get('name');
         content.description = data.get('desc');
+
+
+
+        // Time to make our post!
         let eventsToPublish = []
 
+        // First, we make the post itself
         const postEvent = newPostEvent(JSON.stringify(content), keys.publicKey, keys.privateKey)
         eventsToPublish.push(postEvent)
+
+        // Then, for each vibe we give it, we publish that as well.
         tags.forEach(tag => {
           const unsignedEvent = newReactionEvent(tag, keys.publicKey, postEvent)
           eventsToPublish.push(signEvent(unsignedEvent, keys.privateKey))
         })
 
-        console.log('publishing these', eventsToPublish)
+        // Do the publishing!
         await Promise.all(eventsToPublish.map(async event => {
-          console.log('publishing event', event)
           publishEvent($relay, event)
         }))
 
@@ -127,22 +183,83 @@
       //hashableContext = ctx
     });
   })
+
+  const uploadType =  [
+    'single',
+    'collection'
+  ]
+
+  let value = ''
+  let selectedUploadType = uploadType[0]
+  let answer = ''
+
+  let contents = [undefined]
+
+  const addContent = () => {
+    contents = [...contents, undefined]
+  }
+
+  const removeContent = () => {
+    contents = contents.slice(0, contents.length - 1)
+  }
+
 </script>
 
-<form on:submit={handleUpload}>
-  <p class="header">Upload A Song</p>
+<form autocomplete="off" on:submit|preventDefault={handleUpload}>
+  <label class="header" for="formType">Upload a</label>
+  <select
+    id="formType"
+    class="header"
+    bind:value={selectedUploadType}
+    on:change={() => (answer = '')}
+    >
+    {#each uploadType as type}
+      <option value={type}>
+      {type}
+      </option>
+    {/each}
+  </select>
+  <hr/>
   <input type="hidden" name="pubkey" value={keys.publicKey} />
-  <input type="hidden" name="blurhash" value={blurhash} />
-  <div class="formEntry">
-    <label for="formSong">Song.</label>
-    <input type="file" accept="audio/*" id="formSong" name="song" />
-  </div>
+  {#if selectedUploadType === 'single'}
+    <div class="formEntry">
+      <label for="formSong">Song.</label>
+      <input type="file" accept="audio/*" id="formSong" name="song" />
+    </div>
+  {:else if selectedUploadType === 'collection'}
+    {#each contents as content, i}
+      {#if i > 0}
+        <hr>
+      {/if}
+      <div class="formEntry">
+        <label for="formSong">Song {i+1}.</label>
+        {#if content === undefined}
+          <div class="btn" on:click={() => content = "upload"}>Upload</div>
+          <div class="btn" on:click={() => content = "single"}>Link</div>
+        {:else if content === "upload"}
+          <input type="file" accept="audio/*" id="formSong{i}" name="song" />
+          <input type="text" id="name_formSong{i}" name="songName" placeholder="Song name"/>
+          <div class="btn" on:click={() => content = undefined}>X</div>
+        {:else if content === "single"}
+          <SongSelector bind:content />
+        {/if}
+      </div>
+    {/each}
+    <div class="btn" on:click={addContent}>+ Add a song</div>
+    {#if contents.length > 1}
+      <div class="btn" on:click={removeContent}>- Remove a song</div>
+    {/if}
+  {/if}
+
+  <hr/>
   <div class="formEntry">
     <label for="formPic">Art.</label>
     <input type="file" accept="image/*" id="formPic" name="icon" />
   </div>
+  <input type="hidden" name="blurhash" value={blurhash} />
+
   <div class="formEntry">
-    <label for="formName">Name.</label>
+    <label for="formName">Title.</label>
     <input type="text" id="formName" name="name" />
   </div>
   <div class="formEntry">
@@ -167,6 +284,9 @@
 
 
 <style>
+  select {
+    background-color: transparent;
+  }
 
   .hidden {
     display: none;
@@ -183,6 +303,10 @@
     font-weight: bold;
   }
 
+  hr {
+    margin: 1em;
+  }
+
   .hidden.preview {
     display: block;
   }
@@ -197,10 +321,20 @@
     font-size: 1.5em;
   }
 
+  .btn {
+    cursor: pointer;
+    padding: 0.5em;
+    margin: 0.5em;
+    border: 1px solid;
+    border-radius: 1em;
+    flex-grow: 0;
+  }
+
   input, textarea {
     background-color: #EEEEEE;
     border-radius: 1em;
     padding: 0.5em;
+    flex-grow: 1;
   }
 
   button {
@@ -211,6 +345,7 @@
 
   .formEntry {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-around;
   }

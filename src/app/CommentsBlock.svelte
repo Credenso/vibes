@@ -51,7 +51,7 @@
   {#each $commentsDictionary[event.id] as comment (comment.id)}
     <section class="commentBox">
       <div class="deets">
-        <b>{$userDictionary[comment.pubkey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date(comment.created_at * 1000))}</p>
+        <b>{$userDictionary[comment.pubkey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date(comment.created_at * 1000))}</p>
       </div>
       <p class="comment">{comment.content}</p>
       <small class="replyButton"><a on:click="{() => replyingTo = { id: comment.id, pubkey: comment.pubkey }}">Reply</a></small>
@@ -60,7 +60,7 @@
     {#each $repliesDictionary[comment.id] as reply (reply.id)}
       <section class="commentBox reply">
         <div class="deets">
-          <b>{$userDictionary[reply.pubkey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date(reply.created_at * 1000))}</p>
+          <b>{$userDictionary[reply.pubkey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date(reply.created_at * 1000))}</p>
         </div>
         <p class="comment">{reply.content}</p>
       </section>
@@ -77,11 +77,11 @@
     </div>
   {:else}
     <div class="deets">
-      <b>{$userDictionary[$keys?.publicKey]?.name || "Anonymous"}</b><hr><p>{prettyDate(new Date())}</p>
+      <b>{$userDictionary[$keys?.publicKey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date())}</p>
     </div>
     {#if replyingTo}
     <div class="deets">
-      Replying to {$userDictionary[replyingTo.pubkey]?.name || "Anonymous"}
+      Replying to {$userDictionary[replyingTo.pubkey]?.name || "NPC"}
       <button class="cancel" on:click={() => replyingTo = undefined}>X</button>
     </div>
     {/if}

@@ -30,17 +30,41 @@
     - [x] Vibe cloud - M 
     - [x] Show results - S
 
-- [ ] add Collections support - M
+- [x] add Collections support - M
+    - [x] customize upload - S
+    - [x] Display collection differently - S
+    - [x] Allow for playing of all the songs - S
+    - [x] show tracklist - M
+        - [x] Add song names - S
+
 - [x] Queue songs / Play Now - S
-- [ ] admin keypair / User classes (Admin, creator, fan)
-    - [ ] permissions for inviting
-    - [ ] permissions for uploading
 
 - [ ] upgrade upload screen - M
     - [ ] resize uploaded images - S
     - [x] upload preview - S 
     - [ ] post preview - S 
     - [ ] overhaul UI - S
+
+- [ ] Other categories - M
+    - [ ] Most popular (unique votes in last 30 days) - S
+    - [ ] artists you follow - S
+
+# Hypercore Integration
+- [ ] Pull events from Hypercore
+
+- [ ] User classes (Admin, creator, NPC)
+    - [ ] Registration (Proof of Work)
+    - [ ] permissions for
+        - [ ] commenting
+        - [ ] chatting
+        - [ ] following
+        - [ ] voting
+        - [ ] uploading
+        - [ ] inviting
+
+- [ ] Profile Pictures - S
+
+- [x] Basic groupchat - S
 
 # Next Steps - Polish
 - [ ] Better Image Loading - L
@@ -52,13 +76,13 @@
 - [ ] try again with the wave-generator
 - [ ] integrate blurhash
 - [ ] password protection (w/ keypear?)
-- [ ] sanitize filenames (#, ?)
+- [x] sanitize filenames (#, ?)
+- [ ] better fonts
 
 # Next Steps - Decentralization
-- [ ] publish as NIP-78
 - [ ] manually configure relay and ipfs address
 - [ ] reconsider IPFS vs torrents / .magnet links vs dat protocol
-- [ ] fix nostr compatibility
+- [x] fix nostr compatibility
 - [ ] Allow for offline collections - listening & download https://web.dev/learn/pwa/offline-data/
 - [ ] refactor Modal (there should just be one)
 - [ ] videos

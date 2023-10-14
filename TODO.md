@@ -51,6 +51,7 @@
 
 # Hypercore Integration
 - [ ] Pull events from Hypercore
+- [ ] Login flow with Solar
 
 - [ ] User classes (Admin, creator, NPC)
     - [ ] Registration (Proof of Work)

@@ -73,6 +73,7 @@
   }
 
   const play = () => {
+    console.log('clicked!', post.content)
     if (postType === "collection") {
       tracks.forEach((id,i) => {
         // If it's the first song, play it. Otherwise, queue it.

@@ -26,6 +26,11 @@
 
   import { getSong } from './lib/ipfs'
 
+  import { makeSwarm, makeRAMStore, makeDrive } from './lib/hyper'
+  
+  import b4a from 'b4a'
+  import { schnorr } from '@noble/curves/secp256k1';
+
   import { 
     postDictionary,
     userDictionary,
@@ -35,6 +40,7 @@
     repliesDictionary,
     activePost,
     keys,
+    hyper,
     relay
   } from './lib/stores.js'
 
@@ -46,7 +52,12 @@
   let search = ""
   let page = "main"
   let events = []
-  let results = undefined
+
+  // Hyperdrive stuff
+  let store
+  let core
+  let swarm
+  let drive
 
   let searchOpen = false
   let tags = []
@@ -58,6 +69,46 @@
   $: isPlaying = !audioPlayer.paused
 
   let profile = {};
+
+  // This is a function for turning a profile into
+  // a collection of that person's nostr events
+  const cloneCore = async (profile) => {
+    //if (profile.drive) {
+    //  console.log('drive', profile.drive)
+    //}
+
+    if (profile.log && store) {
+      console.log('log', profile.log)
+      let existentData = store.get({ key: profile.log })
+
+      await existentData.ready()
+
+      const discover = swarm.join(existentData.discoveryKey)
+      const foundPeers = store.findingPeers()
+      swarm.flush().then(() => foundPeers())
+      await discover.flushed()
+
+
+      console.log('key for existentData is ', b4a.toString(existentData.key, 'hex'))
+      //await existentData.download()
+      await existentData.update({ wait: true })
+      console.log('persisted length is', existentData.length)
+      //let range = existentData.download()
+      //await range.done()
+
+      if (existentData.length > 0) {
+        console.log('copying existent data.')
+        let position = 0
+        await $hyper.core.ready()
+        for await (const block of existentData.createReadStream({ start: 0, end: existentData.length })) {
+          //console.log(`Block ${position++}: ${b4a.toString(block)}`)
+          $hyper['core'].append(block)
+          console.log('log length', $hyper['core'].length)
+        }
+      }
+    }
+  }
+
 
   activePost.subscribe((post) => {
     console.log('active post is...', post)
@@ -164,7 +215,8 @@
 
       $postDictionary[event.id] = event
 
-      recentPosts = [event, ...recentPosts.slice(0, 10)]
+      // The filter keeps us from rendering duplicates
+      recentPosts = [event, ...recentPosts.filter(p => p.id !== event.id).slice(0,10)]
     }
   }
 
@@ -173,12 +225,73 @@
   // events and associated data into memory so they can be
   // processed without further latency
   onMount(async () => {
+    // Nostr boostrap
     $relay = await initRelay('ws://relay.localhost')
     events = await getEvents($relay, [{ kinds: [0, 1, 7, 1063, 1618] }]);
 
-    // I don't think we need this value for anything,
-    // but we can await it.
-    results = await Promise.all(events.map(async (event) => processEvent(event)))
+    await Promise.all(events.map(async (event) => processEvent(event)))
+
+    // Hypercore bootstrap
+    swarm = await makeSwarm()
+    store = await makeRAMStore()
+
+    core = store.get({ name: 'log' })
+    $hyper.core = core
+    await core.ready()
+
+    // When someone connects to us via the swarm, generally
+    // the solar server or someone browsing our profile, we 
+    // replicate all the data in the core so far.
+    swarm.on('connection', conn => { 
+      console.log('yep, that\'s a connection')
+      store.replicate(conn) 
+    })
+
+    drive = await makeDrive(store.namespace('drive'))
+    await drive.ready()
+
+    const discover = swarm.join(core.discoveryKey)
+    await discover.flushed()
+    
+    core.on('append', () => {
+      const seq = core.length - 1
+      core.get(seq).then(block => {
+        let data
+        try {
+          data = JSON.parse(b4a.toString(block))
+          processEvent(data)
+        } catch (SyntaxError) {
+          data = b4a.toString(block)
+        }
+
+        console.log(`Block ${seq} data:`, data)
+      })
+    })
+
+
+    if (profile) {
+      cloneCore(profile)
+            .then(async () => {
+              console.log('done cloning!')
+              if (profile.log) {
+                console.log('now we start the session')
+                const sessionKey = b4a.toString($hyper.core.key, 'hex')
+                const pubKey = $keys.publicKey
+                const sig = b4a.toString(schnorr.sign(sessionKey, $keys.privateKey), 'hex')
+
+                const results = await fetch("http://solar.credenso.cafe/session", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "text/plain"
+                  },
+                  body: JSON.stringify({ pubKey, sig, sessionKey })
+                })
+
+                console.log(await results.text())
+              }
+            })
+    }
+
 
     let sub = $relay.sub([
       {
@@ -194,8 +307,8 @@
 
     // Make a query every 30 seconds to keep the connection alive
     window.setInterval(async () => {
-    events = await getEvents($relay, [{ kinds: [0] }]);
-    Promise.all(events.map(async (event) => processEvent(event)))
+      events = await getEvents($relay, [{ kinds: [0] }]);
+      Promise.all(events.map(async (event) => processEvent(event)))
     }, 1000 * 30)
   });
 
@@ -226,7 +339,7 @@
   {/if}
 </Sidebar>
 
-<Profile bind:profile />
+<Profile bind:profile bind:core bind:swarm />
 
 <Music bind:audioPlayer bind:isPlaying bind:searchOpen />
 <Search bind:search bind:searchOpen bind:page />
@@ -251,9 +364,6 @@
           {:else if page === "search"}
             <Results bind:search bind:tags />
           {/if}
-          <div class="hidden" class:visible={page === "chat"}>
-            <Chat bind:profile />
-          </div>
         </section>
       </div>
     </div>

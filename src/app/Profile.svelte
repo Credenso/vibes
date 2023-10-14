@@ -5,15 +5,18 @@
     RELAY_URL,
     genKeys,
     newProfileEvent,
+    signEvent,
     publishEvent
   } from '../lib/nostr'
-  import { userDictionary, keys, relay } from '../lib/stores'
+  import { userDictionary, keys, hyper, relay } from '../lib/stores'
 
   // For hashing the privateKey
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
 
   export let profile
+  export let core
+  export let swarm
 
   let pro = false
   let saving = false
@@ -42,27 +45,32 @@
 
   const saveProfile = async (metadata) => {
     saving = true
-    if (metadata.isArtist && metadata.drive === undefined) {
+    //if (metadata.isArtist && metadata.drive === undefined) {
+    if (metadata.isArtist) {
       console.log("making a Solar drive")
+      const sessionKey = b4a.toString($hyper.core.key, 'hex')
       const pubKey = $keys.publicKey
-      const sigArray = schnorr.sign(pubKey, $keys.privateKey)
-      const verified = schnorr.verify(sigArray, pubKey, pubKey)
+      const sigArray = schnorr.sign(sessionKey, $keys.privateKey)
+      // const verified = schnorr.verify(sigArray, sessionKey, pubKey)
       const sig = b4a.toString(sigArray, 'hex')
 
       // This will be a request to the Solar server they specify
-      const key = await fetch("http://solar.credenso.cafe/register", {
+      const results = await fetch("http://solar.credenso.cafe/register", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain"
         },
-        body: JSON.stringify({ pubKey, sig })
+        body: JSON.stringify({ pubKey, sig, sessionKey })
       })
       console.log('registration complete')
-      metadata.drive = await key.text()
-      console.log('drive', metadata.drive)
+      const json_keys = JSON.parse(await results.text())
+      metadata.drive = json_keys.driveKey
+      metadata.log = json_keys.logKey
     }
-    let profileEvent = newProfileEvent(metadata, $keys.publicKey, $keys.privateKey)
-    publishEvent($relay, profileEvent)
+    let profileEvent = newProfileEvent(metadata, $keys.publicKey)
+    //$hyper.core.append(JSON.stringify(profileEvent))
+    //$hyper.core.append("lol do it work tho??")
+    publishEvent($relay, signEvent(profileEvent, $keys.privateKey))
       .then(res => {
         saving = false
         closeProfile()
@@ -106,6 +114,11 @@
     <button disabled>Saving...</button>
   {:else}
     <button on:click={() => saveProfile(profile)}>Save Profile</button>
+    <button on:click={() => {
+            console.log('click!')
+            console.log('core', $hyper.core)
+            $hyper.core.append("it kinda work tho")
+            }}>Hypercore</button>
   {/if}
   <hr>
   <details>

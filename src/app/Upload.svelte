@@ -3,6 +3,7 @@
   import { encode } from 'blurhash'
   import { 
     postDictionary,
+    hyper,
     relay
   } from '../lib/stores'
 
@@ -41,9 +42,9 @@
   }
 
   const handleUpload = async (e) => {
+    console.log(upload)
     uploading = true
     const data = new FormData(e.currentTarget)
-
 
     // Here, we get a list of all the inputs named "song" and then
     // make an array with a home for each one.
@@ -51,7 +52,8 @@
     let songIds = new Array(songInputs.length)
     let songNames = new Array(songInputs.length)
     songInputs.forEach((input, i) => {
-      const name = document.querySelector(`input[id="name_${input.id}"]`)
+      // The or (||) statement covers the case for single uploads
+      const name = document.querySelector(`input[id="name_${input.id}"]`) || document.querySelector('#formSong')
       if (input.type === "file") {
         // This is the same name replacement that solar uses...
         // but this might end up being kind of fragile.
@@ -77,6 +79,15 @@
       tags: undefined
     }
 
+    const publish = (e) => {
+      if (upload.includes('nostr')) {
+        publishEvent($relay, e)
+      }
+      if (upload.includes('solar')) {
+        $hyper.core.append(JSON.stringify(e))
+      }
+    }
+
     const results = await fetch("http://solar.credenso.cafe/upload", {
       method: "POST",
       body: data
@@ -89,7 +100,11 @@
         const ids = await Promise.all(json.map(async event => {
           const mimetype = event.tags.find(tag => tag[0] === "m")[1]
           const e = signEvent(event, keys.privateKey)
-          await publishEvent($relay, e)
+
+          console.log('event is', e)
+          publish(e)
+          //await $hyper.core.append(JSON.stringify(e))
+          //await publishEvent($relay, e)
 
           // If we find an event with an image mimetype, that
           // is the art we're using to publish
@@ -139,7 +154,7 @@
 
         // Do the publishing!
         await Promise.all(eventsToPublish.map(async event => {
-          publishEvent($relay, event)
+          publish(event)
         }))
 
         // Navigate home
@@ -202,6 +217,8 @@
   const removeContent = () => {
     contents = contents.slice(0, contents.length - 1)
   }
+
+  let upload = undefined
 
 </script>
 
@@ -269,8 +286,14 @@
   <Tags bind:tags />
   <br/>
   <br/>
+  <label for="radio_nostr">Nostr</label>
+  <input type="checkbox" id="radio_nostr" bind:group={upload} value="nostr">
+  <label for="radio_solar">Solar</label>
+  <input type="checkbox" id="radio_solar" bind:group={upload} value="solar">
   {#if uploading}
     <button type="submit" disabled>Uploading...</button>
+  {:else if upload === undefined}
+    <button type="submit" disabled>Upload</button>
   {:else}
     <button type="submit">Upload</button>
   {/if}

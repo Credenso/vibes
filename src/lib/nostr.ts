@@ -146,9 +146,8 @@ export const newProfileEvent = (
     // TODO: Profile interface
     profile_metadata: any,
     public_key: string,
-    private_key: string
 ) => {
-    return genericEvent(Kind.profile, JSON.stringify(profile_metadata), public_key, private_key, []);
+    return genericUnsignedEvent(Kind.profile, JSON.stringify(profile_metadata), public_key, []);
 };
 
 export const newPostEvent = (

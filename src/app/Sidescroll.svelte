@@ -1,4 +1,6 @@
 <script>
+    import { flip } from 'svelte/animate'
+
 	import { postDictionary, contentDictionary } from '../lib/stores'
 	import { preload } from '../lib/util'
     
@@ -15,10 +17,12 @@
 <div class="sideScroll">
   {#if posts}
 	{#each posts as event (event.id)}
-      <Post 
-        postId="{event.id}"
-        image="{$contentDictionary[event.content.image]}"
-        />
+      <div animate:flip={{ delay: 250, duration: 250 }}>
+        <Post 
+          postId="{event.id}"
+          image="{$contentDictionary[event.content.image]}"
+          />
+      </div>
 	{/each}
   {/if}
 </div>

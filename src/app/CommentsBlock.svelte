@@ -4,6 +4,7 @@
     commentsDictionary,
     repliesDictionary,
     userDictionary,
+    activePost,
     keys,
     relay
   } from '../lib/stores'
@@ -16,7 +17,7 @@
 
   import Post from '../app/Post.svelte'
 
-  export let event
+  let event = $postDictionary[$activePost]
   let uploading = false
   let comments = []
   let newComment = ""
@@ -34,6 +35,10 @@
     }
   })
 
+  activePost.subscribe(id => {
+    event = $postDictionary[id]
+  })
+
   const handleComment = async (e) => {
     e.preventDefault()
     if (newComment) {
@@ -47,6 +52,9 @@
   }
 </script>
 
+<hr>
+<h1 class="header">Comments</h1>
+
 {#if $commentsDictionary[event.id]}
   {#each $commentsDictionary[event.id] as comment (comment.id)}
     <section class="commentBox">
@@ -54,7 +62,10 @@
         <b>{$userDictionary[comment.pubkey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date(comment.created_at * 1000))}</p>
       </div>
       <p class="comment">{comment.content}</p>
-      <small class="replyButton"><a on:click="{() => replyingTo = { id: comment.id, pubkey: comment.pubkey }}">Reply</a></small>
+      <div class="actions">
+        <small class="actionButton"><a on:click="{() => replyingTo = { id: comment.id, pubkey: comment.pubkey }}">Reply</a></small>
+        <small class="actionButton"><a on:click="{() => replyingTo = { id: comment.id, pubkey: comment.pubkey }}">Block</a></small>
+      </div>
     </section>
   {#if $repliesDictionary[comment.id]}
     {#each $repliesDictionary[comment.id] as reply (reply.id)}
@@ -70,6 +81,7 @@
 {:else}
   <p>No Comments</p>
 {/if}
+
 <form on:submit={handleComment} class="commentBox">
   {#if uploading}
     <div class="deets">
@@ -92,8 +104,16 @@
   {/if}
 </form>
 
-
 <style>
+  .header {
+    font-size: 1.3em;
+    font-weight: bold;
+  }
+
+  hr {
+    margin: 0.5em;
+  }
+
   textarea {
     width: 100%;
     border-radius: 0.5em;
@@ -123,8 +143,15 @@
     padding: 0.5em;
   }
 
-  .replyButton {
-    float: right;
+  .actions {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: end;
+    gap: 1em;
+  }
+
+  .actionButton {
     padding-right: 0.5em;
     cursor: pointer;
   }

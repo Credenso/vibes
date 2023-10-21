@@ -84,83 +84,95 @@
         publishEvent($relay, e)
       }
       if (upload.includes('solar')) {
-        $hyper.core.append(JSON.stringify(e))
+        $hyper.log.append(JSON.stringify(e))
       }
     }
 
-    const results = await fetch("http://solar.credenso.cafe/upload", {
+    // This is our function for uploading to a server
+    const uploadToServer = (formData) => {
+
+      // First, we post all the form data
+      fetch("http://solar.credenso.cafe/upload", {
       method: "POST",
-      body: data
-    }).then(response => response.json()
-      .then(async json => {
+      body: formData
+      })
+        .then(response => response.json()
+          .then(async json => {
 
-        // The json object that is returned by the /upload endpoint
-        // is an array of unsigned events for the user to sign
-        // and publish
-        const ids = await Promise.all(json.map(async event => {
-          const mimetype = event.tags.find(tag => tag[0] === "m")[1]
-          const e = signEvent(event, keys.privateKey)
+            // The json object that is returned by the /upload endpoint
+            // is an array of unsigned events for the user to sign
+            // and publish - we do that here. We don't actually do
+            // anything with the IDs though.
+            const ids = await Promise.all(json.map(async event => {
+              const mimetype = event.tags.find(tag => tag[0] === "m")[1]
+              const e = signEvent(event, keys.privateKey)
 
-          console.log('event is', e)
-          publish(e)
-          //await $hyper.core.append(JSON.stringify(e))
-          //await publishEvent($relay, e)
+              console.log('event is', e)
+              publish(e)
 
-          // If we find an event with an image mimetype, that
-          // is the art we're using to publish
-          if (mimetype.startsWith('image')) {
-            content.image = e.id
-          }
+              // If we find an event with an image mimetype, that
+              // is the art we're using for the post
+              if (mimetype.startsWith('image')) {
+                content.image = e.id
+              }
 
-          // For each file uploaded, find its place in the songIds
-          // list and replace it with its new ID
-          const formIndex = songIds.indexOf(event.content)
-          if (formIndex !== -1) {
-            songIds[formIndex] = e.id
-          }
+              // For each file uploaded, find its place in the songIds
+              // list and replace it with its new ID
+              const formIndex = songIds.indexOf(event.content)
+              if (formIndex !== -1) {
+                songIds[formIndex] = e.id
+              }
 
-          return e.id
-        }))
+              return e.id
+            }))
 
-        // Set the audio entry to the array of songIds we created
-        content.audio = songIds
+            // Set the audio entry to the array of songIds we created
+            content.audio = songIds
 
-        if (content.audio.length > 1) {
-          // If there's multiple audio files, add the names list
-          content.names = songNames
-        } else {
-          // If there's only one audio file, drop the array
-          content.audio = content.audio[0]
-        }
+            if (content.audio.length > 1) {
+              // If there's multiple audio files, add the names list
+              content.names = songNames
+            } else {
+              // If there's only one audio file, drop the array
+              content.audio = content.audio[0]
+            }
 
-        // Fill the rest of the data from the form
-        content.name = data.get('name');
-        content.description = data.get('desc');
+            // Fill the rest of the data from the form
+            content.name = data.get('name');
+            content.description = data.get('desc');
 
+            // Time to make our post!
+            let eventsToPublish = []
 
+            // First, we make the post itself
+            const postEvent = newPostEvent(JSON.stringify(content), keys.publicKey, keys.privateKey)
+            eventsToPublish.push(postEvent)
 
-        // Time to make our post!
-        let eventsToPublish = []
+            // Then, for each vibe we give it, we publish that as well.
+            tags.forEach(tag => {
+              const unsignedEvent = newReactionEvent(tag, keys.publicKey, postEvent)
+              eventsToPublish.push(signEvent(unsignedEvent, keys.privateKey))
+            })
 
-        // First, we make the post itself
-        const postEvent = newPostEvent(JSON.stringify(content), keys.publicKey, keys.privateKey)
-        eventsToPublish.push(postEvent)
+            // Do the publishing!
+            await Promise.all(eventsToPublish.map(async event => {
+              publish(event)
+            }))
 
-        // Then, for each vibe we give it, we publish that as well.
-        tags.forEach(tag => {
-          const unsignedEvent = newReactionEvent(tag, keys.publicKey, postEvent)
-          eventsToPublish.push(signEvent(unsignedEvent, keys.privateKey))
-        })
+            // Navigate home
+            uploading = false
+            page = "main"
+          }))
+    }
 
-        // Do the publishing!
-        await Promise.all(eventsToPublish.map(async event => {
-          publish(event)
-        }))
+    if (upload.includes('nostr')) {
+      uploadToServer(data)
+    }
 
-        // Navigate home
-        uploading = false
-        page = "main"
-      }))
+    if (upload.includes('solar')) {
+      //TODO: Enable upload to hyperlog
+      //uploadToServer(data)
+    }
   }
 
   let img = new Image()
@@ -286,10 +298,17 @@
   <Tags bind:tags />
   <br/>
   <br/>
-  <label for="radio_nostr">Nostr</label>
-  <input type="checkbox" id="radio_nostr" bind:group={upload} value="nostr">
-  <label for="radio_solar">Solar</label>
-  <input type="checkbox" id="radio_solar" bind:group={upload} value="solar">
+  {#if uploading}
+    <label for="radio_nostr">Nostr</label>
+    <input type="checkbox" id="radio_nostr" bind:group={upload} value="nostr" disabled>
+    <label for="radio_solar">Solar</label>
+    <input type="checkbox" id="radio_solar" bind:group={upload} value="solar" disabled>
+  {:else}
+    <label for="radio_nostr">Nostr</label>
+    <input type="checkbox" id="radio_nostr" bind:group={upload} value="nostr">
+    <label for="radio_solar">Solar</label>
+    <input type="checkbox" id="radio_solar" bind:group={upload} value="solar">
+  {/if}
   {#if uploading}
     <button type="submit" disabled>Uploading...</button>
   {:else if upload === undefined}

@@ -5,11 +5,15 @@
     contentDictionary,
     activeSong,
     activePost,
-    queue
+    activeUser,
+    queue,
+    modal
   } from '../lib/stores'
 
   export let postId
   export let image
+  export let form = "main"
+
   let post = undefined
   let name
   let author
@@ -66,7 +70,11 @@
   })
 
   const setActive = () => {
+    $modal = undefined
     activePost.set(postId)
+    window.setTimeout(() => {
+      $modal = 'details'
+    }, 200)
   }
 
   const addToQueue = (song_id) => {
@@ -92,20 +100,35 @@
 
 </script>
 
-<article class="post">
-  <div class="box" class:collection={postType === "collection"}>
-    <div class="art">
-      <img src="{ image }" alt="vinyl"/>
+{#if form === "short"}
+  <article class="shortPost">
+    <div class="shortArt">
+      <img src="{ image }" alt="cover_art" />
     </div>
-    <div on:click={play} class:currentlyPlaying class="playIcon">
+    <div on:click={play} class:currentlyPlaying class="shortPlayIcon">
       <img src="play.png">
     </div>
-    <section class="about" on:click={setActive}>
-    <div class="name">{ post?.content?.name }</div>
-    <div class="artist">{ author?.name || 'Anonymous' }</div>
+    <section class="shortAbout" on:click={setActive}>
+      <b class="name">{post?.content?.name}</b>
+      <p>{post?.content?.description}</p>
     </section>
-  </div>
-</article> 
+  </article>
+{:else}
+  <article class="post">
+    <div class="box" class:collection={postType === "collection"}>
+      <div class="art">
+        <img src="{ image }" alt="vinyl"/>
+      </div>
+      <div on:click={play} class:currentlyPlaying class="playIcon">
+        <img src="play.png">
+      </div>
+      <section class="about" on:click={setActive}>
+        <div class="name">{ post?.content?.name }</div>
+        <div class="artist">{ author?.name || 'Anonymous' }</div>
+      </section>
+    </div>
+  </article> 
+{/if}
 
 <style>
   img {
@@ -141,11 +164,6 @@
     border-radius: .375rem;
   }
 
-  .currentlyPlaying {
-    transition: opacity 0.1s ease-in-out;
-    opacity: 1;
-  }
-
   .box {
     display: flex;
     position: relative;
@@ -175,11 +193,6 @@
     font-weight: bold;
   }
 
-  .name {
-    font-style: italic;
-    line-height: 1;
-  }
-
   .desc {
     flex-grow: 1;
     display: flex;
@@ -193,4 +206,54 @@
   .font-bold {
     line-height: 1;
   }
+
+  .shortPost {
+    display: flex;
+    flex-direction: row;
+    background: #EEEEEE;
+    height: 5em;
+    border-radius: .375rem;
+    margin: 0.5em;
+    text-align: left;
+  }
+
+  .shortArt img {
+    border-radius: 0.375em 0 0 0.375em;
+    margin-right: 0.5em;
+    height: 5em;
+    width: 5em;
+  }
+
+  .shortAbout {
+    padding: 0.25em;
+    width: 70%;
+  }
+
+  .shortAbout p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .shortPlayIcon {
+    position: absolute;
+    background: #EEEEEE55;
+    height: 5em;
+    width: 5em;
+    opacity: 0;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .shortPlayIcon img {
+    object-fit: contain;
+    height: 100%;
+    padding: 1em;
+  }
+
+  .currentlyPlaying {
+    transition: opacity 0.1s ease-in-out;
+    opacity: 1;
+  }
+
 </style>

@@ -4,24 +4,51 @@
     publishEvent,
     signEvent
   } from '../lib/nostr'
-  import { relay, vibesDictionary, keys } from '../lib/stores'
+
+  import { 
+    relay,
+    vibesDictionary,
+    postDictionary,
+    activePost,
+    keys 
+  } from '../lib/stores'
+
   import { flip } from 'svelte/animate';
   import { quintOut } from 'svelte/easing';
 
-  export let event;
+  let event = $postDictionary[$activePost]
   let vibes = $vibesDictionary[event.id]
-  let vibesList = []
-  $: vibes, vibesList = Object.keys(vibes).sort((v1,v2) => {
-    if (vibes[v1].length > vibes[v2].length) {
-      return -1
-    } else {
-      return 1
+
+  const sortedVibes = (vibesDict) => {
+    const sorted = Object.keys(vibes).sort((v1,v2) => {
+      if (vibes[v1].length > vibes[v2].length) {
+        return -1
+      } else {
+        return 1
+      }
+    })
+
+    return sorted
+  }
+
+  let vibesList = sortedVibes(vibes)
+
+  vibesDictionary.subscribe((vibeDict) => {
+    // If the vibes have changed,
+    // change the vibe.
+    if (event) {
+      vibes = vibeDict[event.id]
+      vibesList = sortedVibes(vibes)
     }
   })
 
-  vibesDictionary.subscribe((vibeDict) => {
-    if (vibes == vibeDict[event.id]) {
-      vibes = vibeDict[event.id]
+  activePost.subscribe((id) => {
+    // likewise, we must stay up-to-date
+    // on what's happening
+    event = $postDictionary[id]
+    if (event) {
+      vibes = $vibesDictionary[event.id]
+      vibesList = sortedVibes(vibes)
     }
   })
 
@@ -36,17 +63,21 @@
   
 </script>
 
-<section>
-  {#each vibesList as vibe, i (vibe)}
-    <button 
-      animate:flip={{ delay: 200, duration: 500, easing: quintOut }} 
-      on:click={() => vote(vibe)}
-      style={`font-size: ${Math.log(1  + vibes[vibe].length)}em`}
-      >
-      {vibe}
-    </button>
-  {/each}
-</section>
+<hr>
+<h1 class="header">Vibes</h1>
+{#if vibesList}
+  <section>
+    {#each vibesList as vibe, i (vibe)}
+      <button 
+        animate:flip={{ delay: 200, duration: 500, easing: quintOut }} 
+        on:click={() => vote(vibe)}
+        style={`font-size: ${Math.log(1  + vibes[vibe].length)}em`}
+        >
+        {vibe}
+      </button>
+    {/each}
+  </section>
+{/if}
 
 <style>
   section {
@@ -79,5 +110,15 @@
 
   button:active {
     animation: none;
+  }
+
+  hr {
+    margin: .5em;
+  }
+
+  .header {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-top: 1em;
   }
 </style>

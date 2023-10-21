@@ -39,6 +39,14 @@
 
 - [x] Queue songs / Play Now - S
 
+- [x] Profile Page - M
+    - [x] Edit Profile - M
+    - [x] Profile Pictures - S
+
+- [x] User Registration - M
+    - [x] Update Profile screen
+    - [x] NIP-05 compatibility
+
 - [ ] upgrade upload screen - M
     - [ ] resize uploaded images - S
     - [x] upload preview - S 
@@ -50,8 +58,10 @@
     - [ ] artists you follow - S
 
 # Hypercore Integration
-- [ ] Pull events from Hypercore
-- [ ] Login flow with Solar
+- [x] Pull events from Hypercore
+- [x] Login flow with Solar
+
+- [ ] Hypercore Chats
 
 - [ ] User classes (Admin, creator, NPC)
     - [ ] Registration (Proof of Work)
@@ -62,8 +72,6 @@
         - [ ] voting
         - [ ] uploading
         - [ ] inviting
-
-- [ ] Profile Pictures - S
 
 - [x] Basic groupchat - S
 

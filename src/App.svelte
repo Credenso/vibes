@@ -3,12 +3,15 @@
   import Sidebar from './app/Sidebar.svelte'
   import Navbar from './app/Navbar.svelte'
   import Profile from './app/Profile.svelte'
+  import Member from './app/Member.svelte'
   import Post from './app/Post.svelte'
   import Search from './app/Search.svelte'
   import Results from './app/Results.svelte'
   import Upload from './app/Upload.svelte'
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
+  import SongModal from './app/SongModal.svelte'
+  import Details from './app/Details.svelte'
   import Modal from './app/Modal.svelte'
   import Music from './app/Music.svelte'
   import Chat from './app/Chat.svelte'
@@ -40,6 +43,7 @@
     repliesDictionary,
     activePost,
     keys,
+    modal,
     hyper,
     relay
   } from './lib/stores.js'
@@ -52,10 +56,11 @@
   let search = ""
   let page = "main"
   let events = []
+  let members
 
   // Hyperdrive stuff
   let store
-  let core
+  let log
   let swarm
   let drive
 
@@ -77,33 +82,24 @@
     //  console.log('drive', profile.drive)
     //}
 
-    if (profile.log && store) {
-      console.log('log', profile.log)
-      let existentData = store.get({ key: profile.log })
+    if (profile.log && $hyper.store) {
+      let existentData = $hyper.store.get({ key: profile.log })
 
       await existentData.ready()
 
-      const discover = swarm.join(existentData.discoveryKey)
+      const discover = $hyper.swarm.join(existentData.discoveryKey)
       const foundPeers = store.findingPeers()
-      swarm.flush().then(() => foundPeers())
+      $hyper.swarm.flush().then(() => foundPeers())
       await discover.flushed()
 
-
-      console.log('key for existentData is ', b4a.toString(existentData.key, 'hex'))
-      //await existentData.download()
       await existentData.update({ wait: true })
-      console.log('persisted length is', existentData.length)
-      //let range = existentData.download()
-      //await range.done()
 
       if (existentData.length > 0) {
         console.log('copying existent data.')
         let position = 0
-        await $hyper.core.ready()
+        await $hyper.log.ready()
         for await (const block of existentData.createReadStream({ start: 0, end: existentData.length })) {
-          //console.log(`Block ${position++}: ${b4a.toString(block)}`)
-          $hyper['core'].append(block)
-          console.log('log length', $hyper['core'].length)
+          $hyper.log.append(block)
         }
       }
     }
@@ -165,6 +161,17 @@
     } else if (event.kind === 0) {
       // User Profile
       let content = JSON.parse(event.content);
+      if (profile.username === undefined) {
+        profile.username = ""
+      }
+
+      // We default to our server if one isn't
+      // defined - assuming they'll want to register
+      // at whatever station they are browsing
+      if (profile.station === undefined) {
+        profile.station = "solar.credenso.cafe"
+      }
+
       $userDictionary[event.pubkey] = content;
 
       // If we find a user that matches our public key,
@@ -180,13 +187,15 @@
       const post_id = event.tags.find(t => t[0] === "e")[1]
       const reaction = event.content 
 
-      // This might be a waste of compute
+      // This might be a waste of compute, but it's a
+      // list of all tags available in the app
       if (!tags.includes(reaction)) tags.push(reaction)
 
       const vibes = $vibesDictionary[post_id]
       // If we already have a list for the reactions
       if (vibes && vibes[reaction]) {
-        vibes[reaction] = [...vibes[reaction], event.pubkey]
+        // Filter is necessary to prevent duplication from different sources
+        vibes[reaction] = [...vibes[reaction].filter(r => r !== event.pubkey), event.pubkey]
         $vibesDictionary[post_id] = vibes
 
       // If we have a dictionary for the post, but
@@ -234,10 +243,13 @@
     // Hypercore bootstrap
     swarm = await makeSwarm()
     store = await makeRAMStore()
+    drive = await makeDrive(store.namespace('drive'))
+    log = store.get({ name: 'log' })
 
-    core = store.get({ name: 'log' })
-    $hyper.core = core
-    await core.ready()
+    await drive.ready()
+    await log.ready()
+
+    $hyper = { log, swarm, store, drive }
 
     // When someone connects to us via the swarm, generally
     // the solar server or someone browsing our profile, we 
@@ -247,15 +259,12 @@
       store.replicate(conn) 
     })
 
-    drive = await makeDrive(store.namespace('drive'))
-    await drive.ready()
-
-    const discover = swarm.join(core.discoveryKey)
+    const discover = swarm.join(log.discoveryKey)
     await discover.flushed()
     
-    core.on('append', () => {
-      const seq = core.length - 1
-      core.get(seq).then(block => {
+    log.on('append', () => {
+      const seq = log.length - 1
+      log.get(seq).then(block => {
         let data
         try {
           data = JSON.parse(b4a.toString(block))
@@ -275,7 +284,7 @@
               console.log('done cloning!')
               if (profile.log) {
                 console.log('now we start the session')
-                const sessionKey = b4a.toString($hyper.core.key, 'hex')
+                const sessionKey = b4a.toString($hyper.log.key, 'hex')
                 const pubKey = $keys.publicKey
                 const sig = b4a.toString(schnorr.sign(sessionKey, $keys.privateKey), 'hex')
 
@@ -291,6 +300,11 @@
               }
             })
     }
+
+    // Here we get the list of currently registered members
+    const membersJSON = await fetch("http://solar.credenso.cafe/.well-known/nostr.json")
+    members = await membersJSON.json()
+    console.log('members', members)
 
 
     let sub = $relay.sub([
@@ -339,7 +353,16 @@
   {/if}
 </Sidebar>
 
-<Profile bind:profile bind:core bind:swarm />
+<Modal>
+  <div class="hidden" class:visible={$modal === "details"}>
+    <Details />
+  </div>
+  <div class="hidden" class:visible={$modal === "member"}>
+    <Member />
+  </div>
+</Modal>
+
+<Profile />
 
 <Music bind:audioPlayer bind:isPlaying bind:searchOpen />
 <Search bind:search bind:searchOpen bind:page />
@@ -352,7 +375,6 @@
           <Loading />
         {/if}
         <section class="is-preload">
-          <Modal />
           {#if page === "main"}
             <Sidescroll 
               title="Recent posts."

@@ -1,9 +1,19 @@
 <script>
+	import { onMount } from 'svelte'
 	import { clickOutside } from '../lib/util.ts'
 
 	export let search;
 	export let page;
-	export let searchOpen
+	export let activeWidget;
+
+	$: searchOpen = (activeWidget === 'search')
+
+	const closeSearch = () => {
+		if (activeWidget === 'search') {
+			activeWidget = undefined
+			if (page === 'search' && search.length === 0) page = 'main'
+		}
+	}
 
 	// If the searchBar is clicked, ignore.
 	// If the closed button is clicked, open it
@@ -14,15 +24,27 @@
 		if (e.target === document.getElementById('searchBar')) {
 			console.log('searching!')
 		} else if (!searchOpen) {
-			searchOpen = true
+			activeWidget = 'search'
 		} else {
 			console.log('querying search')
 			page = "search"
 		}
 	}
+
+	onMount(() => {
+		const search = document.getElementById('searchBar')
+		search.addEventListener('keydown', (e) => {
+			e = e || window.event
+			switch (e.which || e.keyCode) {
+				case 13 :
+					page = "search"
+					break
+			}
+		})
+	})
 </script>
 
-<button use:clickOutside={() => searchOpen = false} class:searchOpen on:click={(e) => handleClick(e) } class="text-gray-500 hover:text-gray-700 cursor-pointer mr-4 border-none focus:outline-none">
+<button use:clickOutside={closeSearch} class:searchOpen on:click={(e) => handleClick(e) } class="text-gray-500 hover:text-gray-700 cursor-pointer mr-4 border-none focus:outline-none">
 	<img src="magnifying_glass_light.png" alt="Search" />
 	<input id="searchBar" bind:value={search} />
 </button>

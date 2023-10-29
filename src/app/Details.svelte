@@ -41,14 +41,11 @@
   }
 
   const openModal = () => {
-    // We only want to update this once
-    if (event && postType === undefined) {
       author = $userDictionary[event.pubkey]
       postType = event.content.type
       if (postType === "collection") {
         getTracks()
       }
-    }
   }
 
   const closeModal = () => {
@@ -74,7 +71,7 @@
 
   const addToQueue = (priority = undefined) => {
     if (postType === "collection") {
-      const queueItems = tracks.map(track_id => $contentDictionary[track_id])
+      const queueItems = tracks.map(track_id => $contentDictionary[track_id].url)
       if (priority === 0) {
         $queue = [...queueItems, ...$queue]
       } else {
@@ -84,7 +81,7 @@
       }
 
     } else if (postType === "single") {
-      const audio = $contentDictionary[event.content.audio]
+      const audio = $contentDictionary[event.content.audio].url
       if (priority === 0) {
         $queue = [audio, ...$queue]
       } else {
@@ -95,20 +92,20 @@
 
   const play = (id = undefined) => {
     if (id) {
-      activeSong.set($contentDictionary[id])
+      activeSong.set($contentDictionary[id].url)
     } else if (postType === "collection") {
       tracks.forEach((id,i) => {
         // If it's the first song, play it. Otherwise, queue it.
         if (i === 0) {
-          activeSong.set($contentDictionary[id])
+          activeSong.set($contentDictionary[id].url)
         } else {
-          $queue.push($contentDictionary[id])
+          $queue.push($contentDictionary[id].url)
         }
       })
     } else if (postType === "single") {
       // otherwise it's a single, we don't have to worry about
       // Any of these strange shenannies
-      activeSong.set($contentDictionary[post.content.audio])
+      activeSong.set($contentDictionary[post.content.audio].url)
     }
   }
 
@@ -123,8 +120,8 @@
 <section>
   {#if event}
     <p class="header">{event.content.name}</p>
-    <small>posted {new Date(event.created_at * 1000).toDateString()}</small>
-    <img src="{$contentDictionary[event.content.image]}" alt="img"/>
+    <a class="subtitle" on:click={() => visit(event.pubkey)}><img class="micro" src="{$contentDictionary[author?.avatar]?.url || "profile_photo.png"}"/> {author?.name} - posted {new Date(event.created_at * 1000).toDateString()}</a> 
+    <img src="{$contentDictionary[event.content.image].url}" alt="img"/>
     {#if postType === "collection"}
       <div class="actions">
         <div class:activeTab={tab === "about"} on:click={() => tab = "about"}>About</div>
@@ -132,11 +129,11 @@
       </div>
     {/if}
     {#if tab === "about"}
-      <p>{event.content.description}</p>
+      <p class="description">{event.content.description}</p>
     {:else if tab === "tracklist"}
       <table>
         {#each tracks as track_id, i}
-          <tr class:nowPlaying={$activeSong === $contentDictionary[track_id]} on:click={() => play(track_id)}>
+          <tr class:nowPlaying={$activeSong === $contentDictionary[track_id].url} on:click={() => play(track_id)}>
             <td><b>{i+1}.</b></td>
             <td>{event.content.names[i]}</td>
             {#if $postDictionary[event.content.audio[i]] }
@@ -144,7 +141,7 @@
             {:else}
               <td></td>
             {/if}
-            {#if ($activeSong === $contentDictionary[track_id])}
+            {#if ($activeSong === $contentDictionary[track_id].url)}
               <td><img src="play.png" alt="play_icon" /></td>
             {:else}
               <td></td>
@@ -154,14 +151,11 @@
         {/each}
       </table>
     {/if}
-    <!--<a class="author" on:click={() => $activeUser = event.pubkey} href="{author?.site || '#'}" target="_blank">-- {author?.name || "NPC"}</a>-->
-    <a class="author" on:click={() => visit(event.pubkey)}>-- {author?.name || "NPC"}</a>
     <div class="actions">
       <button on:click={() => addToQueue(0)}>Play Next</button>
       <button on:click={() => addToQueue()}>Add to Queue</button>
-      <a class="button" href="{$contentDictionary[event.content.audio]}" download>Download</a>
     </div>
-    <CommentsBlock event={event} />
+    <CommentsBlock />
     <TagsBlock />
   {/if}
 </section>
@@ -170,6 +164,10 @@
   @keyframes fadeBlue {
     0%   { background-color: #028A9B; }
     100% { background-color: #FFFFFF; }
+  }
+
+  section {
+    font-family: "Montserrat";
   }
 
   button, a.button {
@@ -193,6 +191,13 @@
     border-radius: 0.5em;
   }
 
+  img.micro {
+    border-radius: 50%;
+    display: inline;
+    height: 1rem;
+    margin: 0;
+  }
+
   .author {
     color: #028a9b;
     text-decoration: unset;
@@ -201,10 +206,14 @@
     padding: 0.5em;
   }
 
+  .description {
+    padding: 0.5em;
+  }
+
   .actions {
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: start;
   }
 
   .activeTab {
@@ -213,8 +222,18 @@
   }
 
   .header {
+    font-family: "Comfortaa";
     font-size: 1.3em;
     font-weight: bold;
+  }
+
+  .subtitle {
+    font-family: "Comfortaa";
+    font-size: 0.8em;
+  }
+
+  table {
+    width: 100%;
   }
 
   tr {

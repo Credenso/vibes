@@ -17,6 +17,9 @@ export const activePost = writable(undefined);
 export const activeUser = writable(undefined);
 
 export const queue = writable([]);
+export const members = writable({});
+export const contacts = writable([]);
+export const chats = writable({});
 export const relay = writable(undefined);
 export const modal = writable(undefined);
 export const keys = writable({});

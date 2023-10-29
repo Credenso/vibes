@@ -172,6 +172,7 @@
     if (upload.includes('solar')) {
       //TODO: Enable upload to hyperlog
       //uploadToServer(data)
+      uploading = false
     }
   }
 

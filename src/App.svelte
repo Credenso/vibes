@@ -10,11 +10,13 @@
   import Upload from './app/Upload.svelte'
   import Loading from './app/Loading.svelte'
   import Sidescroll from './app/Sidescroll.svelte'
-  import SongModal from './app/SongModal.svelte'
   import Details from './app/Details.svelte'
   import Modal from './app/Modal.svelte'
   import Music from './app/Music.svelte'
   import Chat from './app/Chat.svelte'
+  import Direct from './app/Direct.svelte'
+
+  import Hyperdrive from 'hyperdrive'
 
   // Utilities
   import { onMount, onDestroy } from 'svelte'
@@ -24,12 +26,15 @@
     getUsers,
     getEvents,
     unsecuredLocalKeys,
+    signEvent,
     publishEvent
   } from './lib/nostr'
 
   import { getSong } from './lib/ipfs'
 
-  import { makeSwarm, makeRAMStore, makeDrive } from './lib/hyper'
+  import { nip42 } from 'nostr-tools'
+
+  import { makeSwarm, makeRAMStore, makeBrowserStore, makeDrive } from './lib/hyper'
   
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
@@ -44,7 +49,9 @@
     activePost,
     keys,
     modal,
+    members,
     hyper,
+    contacts,
     relay
   } from './lib/stores.js'
 
@@ -55,8 +62,8 @@
   let openMenu = false
   let search = ""
   let page = "main"
+  let activeWidget = undefined
   let events = []
-  let members
 
   // Hyperdrive stuff
   let store
@@ -68,6 +75,7 @@
   let tags = []
 
   let recentPosts = []
+  let followedPosts = []
 
   let audioPlayer = new Audio()
   audioPlayer.crossOrigin = true
@@ -75,6 +83,7 @@
 
   let profile = {};
 
+  // TODO: Reintegrate Hypercore
   // This is a function for turning a profile into
   // a collection of that person's nostr events
   const cloneCore = async (profile) => {
@@ -210,8 +219,8 @@
       }
     } else if (event.kind === 1063) {
       // Content (file)
-      let content = event.tags.find(t => t[0] === "url")[1]
-      $contentDictionary[event.id] = `${staticEndpoint}${content}`;
+      event.url = `${staticEndpoint}${event.tags.find(t => t[0] === "url")[1]}`
+      $contentDictionary[event.id] = event
     } else if (event.kind === 1618) {
       // Post
       event.content = JSON.parse(event.content)
@@ -229,21 +238,53 @@
     }
   }
 
-
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
   // processed without further latency
   onMount(async () => {
     // Nostr boostrap
     $relay = await initRelay('ws://relay.localhost')
+
+    // We need to authenticate
+    const sign = async (event) => {
+      event.pubkey = $keys.publicKey
+      return await signEvent(event, $keys.privateKey)
+    }
+    $relay.on('auth', async challenge => {
+      nip42.authenticate({ relay: $relay, sign, challenge })
+
+      // This is very jank (arbitrarily waits 500ms for auth)
+      // TODO: Dejankify
+      window.setTimeout(() => {
+        $relay.authorized = true
+      }, 500)
+    })
+
     events = await getEvents($relay, [{ kinds: [0, 1, 7, 1063, 1618] }]);
 
     await Promise.all(events.map(async (event) => processEvent(event)))
 
-    // Hypercore bootstrap
+    $contacts = await $relay.list([{ 
+      kinds: [3],
+      authors: [$keys.publicKey],
+      limit: 1
+    }]).then(list => {
+      if (list.length > 0) {
+        return list[0].tags
+      } else {
+        return []
+      }
+    })
+
+    const followedIDs = $contacts.map(c => c[1])
+    followedPosts = Object.values($postDictionary).filter(post => followedIDs.includes(post.pubkey))
+
+
+    // Hypercore bootstrap (Keeping this to avoid further breakage)
     swarm = await makeSwarm()
     store = await makeRAMStore()
-    drive = await makeDrive(store.namespace('drive'))
+    //store = await makeBrowserStore('vibes')
+    drive = await makeDrive(store.namespace('drive'), { name: 'drive' })
     log = store.get({ name: 'log' })
 
     await drive.ready()
@@ -251,61 +292,89 @@
 
     $hyper = { log, swarm, store, drive }
 
-    // When someone connects to us via the swarm, generally
-    // the solar server or someone browsing our profile, we 
-    // replicate all the data in the core so far.
-    swarm.on('connection', conn => { 
-      console.log('yep, that\'s a connection')
-      store.replicate(conn) 
-    })
 
-    const discover = swarm.join(log.discoveryKey)
-    await discover.flushed()
-    
-    log.on('append', () => {
-      const seq = log.length - 1
-      log.get(seq).then(block => {
-        let data
-        try {
-          data = JSON.parse(b4a.toString(block))
-          processEvent(data)
-        } catch (SyntaxError) {
-          data = b4a.toString(block)
-        }
+    // TODO: Reintegrate Hypercore
+    //$contacts.forEach(async contact => {
+    //  console.log('contact key', contact)
+    //  const profile = $userDictionary[contact[1]]
+    //  console.log('profile', profile)
+    //  const hyper = store.namespace(contact)
+    //  const log = hyper.get({ key: profile.log })
+    //  console.log('log wait', profile.log)
+    //  await log.ready()
+    //  console.log('log ready!')
+    //  console.log('log length:', log.length)
+    //  const drive = new Hyperdrive(hyper.namespace('files'), profile.drive)
+    //  console.log('drive wait!', profile.drive)
+    //  await drive.ready()
+    //  console.log('drive ready!')
+    //  for await(const file of drive.entries()) {
+    //    console.log('file!', file)
+    //  }
+    //  //const files = await drive.entries()
+    //})
 
-        console.log(`Block ${seq} data:`, data)
-      })
-    })
+    //// When someone connects to us via the swarm, generally
+    //// the solar server or someone browsing our profile, we 
+    //// replicate all the data in the core so far.
+    //swarm.on('connection', conn => { 
+    //  console.log('yep, that\'s a connection')
+    //  store.replicate(conn) 
+    //})
+
+    //const discover = swarm.join(log.discoveryKey)
+    //await discover.flushed()
+    //
+    //log.on('append', () => {
+    //  const seq = log.length - 1
+    //  log.get(seq).then(block => {
+    //    let data
+    //    try {
+    //      data = JSON.parse(b4a.toString(block))
+    //      if (data.id) {
+    //        processEvent(data)
+    //      } else {
+    //        // TODO: Create the Hyperdrive with this data
+    //        console.log('hyperlog:', data)
+    //      }
+    //    } catch (SyntaxError) {
+    //      data = b4a.toString(block)
+    //    }
+
+    //    console.log(`Block ${seq} data:`, data)
+    //  })
+    //})
+
+    //await log.append(JSON.stringify({ drive: b4a.toString(drive.key, 'hex') }))
 
 
-    if (profile) {
-      cloneCore(profile)
-            .then(async () => {
-              console.log('done cloning!')
-              if (profile.log) {
-                console.log('now we start the session')
-                const sessionKey = b4a.toString($hyper.log.key, 'hex')
-                const pubKey = $keys.publicKey
-                const sig = b4a.toString(schnorr.sign(sessionKey, $keys.privateKey), 'hex')
+    //if (profile) {
+    //  cloneCore(profile)
+    //        .then(async () => {
+    //          console.log('done cloning!')
+    //          if (profile.log) {
+    //            console.log('now we start the session')
+    //            const sessionKey = b4a.toString($hyper.log.key, 'hex')
+    //            const pubKey = $keys.publicKey
+    //            const sig = b4a.toString(schnorr.sign(sessionKey, $keys.privateKey), 'hex')
 
-                const results = await fetch("http://solar.credenso.cafe/session", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "text/plain"
-                  },
-                  body: JSON.stringify({ pubKey, sig, sessionKey })
-                })
+    //            const results = await fetch("http://solar.credenso.cafe/session", {
+    //              method: "POST",
+    //              headers: {
+    //                "Content-Type": "text/plain"
+    //              },
+    //              body: JSON.stringify({ pubKey, sig, sessionKey })
+    //            })
 
-                console.log(await results.text())
-              }
-            })
-    }
+    //            console.log(await results.text())
+    //          }
+    //        })
+    //}
 
     // Here we get the list of currently registered members
     const membersJSON = await fetch("http://solar.credenso.cafe/.well-known/nostr.json")
-    members = await membersJSON.json()
-    console.log('members', members)
-
+    $members = await membersJSON.json()
+    console.log('members', $members)
 
     let sub = $relay.sub([
       {
@@ -322,7 +391,7 @@
     // Make a query every 30 seconds to keep the connection alive
     window.setInterval(async () => {
       events = await getEvents($relay, [{ kinds: [0] }]);
-      Promise.all(events.map(async (event) => processEvent(event)))
+      //Promise.all(events.map(async (event) => processEvent(event)))
     }, 1000 * 30)
   });
 
@@ -345,11 +414,10 @@
 <Navbar bind:page />
 
 <Sidebar bind:open={openMenu}>
-  <b>Menu</b>
-  <button on:click={() => navTo("main")}>Home</button>
-  <button on:click={() => navTo("chat")}>Chat</button>
-  {#if profile.isArtist}
-    <button on:click={() => navTo("upload")}>Upload</button>
+  <button on:click={() => navTo("main")}>🏠 Home</button>
+  <button on:click={() => navTo("chat")}>💬 Chat</button>
+  {#if profile?.nip05?.includes('solar.credenso.cafe')}
+    <button on:click={() => navTo("upload")}>📁 Upload</button>
   {/if}
 </Sidebar>
 
@@ -360,12 +428,15 @@
   <div class="hidden" class:visible={$modal === "member"}>
     <Member />
   </div>
+  <div class="hidden" class:visible={$modal === "direct"}>
+    <Direct />
+  </div>
 </Modal>
 
 <Profile />
 
-<Music bind:audioPlayer bind:isPlaying bind:searchOpen />
-<Search bind:search bind:searchOpen bind:page />
+<Music bind:audioPlayer bind:isPlaying bind:activeWidget />
+<Search bind:search bind:activeWidget bind:page />
 
 <main>
   <div class="redBorder">
@@ -374,18 +445,30 @@
         {#if loading}
           <Loading />
         {/if}
+
         <section class="is-preload">
-          {#if page === "main"}
+          <div class="hidden" class:visible={page === "main"}>
             <Sidescroll 
               title="Recent posts."
               color="red"
               bind:posts={recentPosts}
               />
-          {:else if page === "upload"}
+
+              <Sidescroll 
+                title="People you follow."
+                color="orange"
+                bind:posts={followedPosts}
+                />
+          </div>
+          <div class="hidden" class:visible={page === "upload"}>
             <Upload bind:page bind:keys={$keys} />
-          {:else if page === "search"}
+          </div>
+          <div class="hidden" class:visible={page === "search"}>
             <Results bind:search bind:tags />
-          {/if}
+          </div>
+          <div class="hidden" class:visible={page === "chat"}>
+            <Chat bind:profile />
+          </div>
         </section>
       </div>
     </div>
@@ -441,7 +524,7 @@
     display: none;
   }
 
-  .visible {
+  .hidden.visible {
     display: block;
   }
 
@@ -452,5 +535,6 @@
     width: 100%;
     margin: auto;
     padding-bottom: 0.5em;
+    font-family: "Comfortaa";
   }
 </style>

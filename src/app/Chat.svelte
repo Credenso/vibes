@@ -1,55 +1,98 @@
 <script>
     import { onMount } from 'svelte';
+    import {
+        userDictionary,
+        relay,
+        keys,
+        chats
+    } from '../lib/stores'
+
+    import  {
+        getEvents
+    } from '../lib/nostr'
+
+    import { nip04, nip44 } from 'nostr-tools'
+
     export let profile;
 
-    let messages = []
+    let people = []
+    let secrets = {}
 
-    const scroll = () => {
-        const chatBox = document.querySelector('.chat')
-        if (chatBox) {
-            window.setTimeout(() => {
-            chatBox.scrollTo(0, chatBox.scrollHeight)
-            }, 100)
+    const getSharedKey = (member) => {
+        let existing = secrets[member] 
+        if (existing) {
+            return existing
+        } else {
+            const newKey = nip44.getSharedSecret($keys.privateKey, member)
+            secrets[member] = newKey
+            return newKey
         }
     }
 
-    onMount(() => {
-        const ws = new WebSocket(`ws://solar.credenso.cafe`);
-        ws.binaryType = "blob";
-        // Log socket opening and closing
-        ws.addEventListener("open", event => {
-            console.log("Websocket connection opened");
-        });
-        ws.addEventListener("close", event => {
-            console.log("Websocket connection closed");
-        });
-        ws.onmessage = function (message) {
-            if (message.data instanceof Blob) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const parsed_message = JSON.parse(reader.result)
-                    messages = [...messages, parsed_message]
-                };
-                console.log('message', message)
-                reader.readAsText(message.data);
-            } else {
-                const parsed_message = JSON.parse(reader.result)
-                messages = [...messages, parsed_message]
-            }
-            scroll()
+    const processDM = async (event) => {
+        let member
+        if (event.pubkey === $keys.publicKey) {
+            // It's from us, who's it to?
+            const pTag = event.tags.find(t => t[0] === "p")
+            member = pTag[1]
+        } else {
+            // It's from someone else
+            member = event.pubkey
         }
-        const form = document.getElementById('msgForm');
-        form.addEventListener('submit', (event) => {
-            event.preventDefault();
-            console.log('profile', profile)
-            const message = {
-                text: document.getElementById('inputBox').value,
-                profile
-            }
-            
-            ws.send(JSON.stringify(message));
-            document.getElementById('inputBox').value = ''
-        })
+
+        const msg = {
+            ts: event.created_at,
+            text: await nip04.decrypt($keys.privateKey, member, event.content),
+            //text: nip44.decrypt(key, event.content),
+            pubkey: event.pubkey,
+            id: event.id
+        }
+
+        if ($chats[member]) {
+            const sorted = [...$chats[member], msg].sort((m1, m2) => {
+                return m1.ts > m2.ts
+            })
+            $chats[member] = sorted
+        } else {
+            $chats[member] = [msg]
+        }
+
+        return msg
+    }
+
+    relay.subscribe(async r => {
+        if (r?.authorized) {
+            const history = await r.list([
+                { kinds: [4], "#p": [$keys.publicKey] },
+                { kinds: [4], author: [$keys.publicKey] }
+            ])
+
+            await Promise.all(history.map(async (event) => processDM(event)))
+
+            let feed = r.sub([
+                { kinds: [4], "#p": [$keys.publicKey], since: Math.floor(Date.now() / 1000) },
+                { kinds: [4], author: [$keys.publicKey], since: Math.floor(Date.now() / 1000) }
+            ])
+
+            feed.on('event', async event => {
+                await processDM(event)
+            })
+
+            // Keepalive
+            window.setInterval(async () => {
+                await r.list([
+                    { 
+                        kinds: [4],
+                        since: Math.floor(Date.now() / 1000)
+                    }
+                ])
+                //Promise.all(events.map(async (event) => processEvent(event)))
+            }, 1000 * 30)
+
+            chats.subscribe(userChats => {
+                people = Object.keys(userChats)
+            })
+        }
     })
 </script>
 
@@ -59,18 +102,24 @@
 </p>
 <hr>
 <div class="chat">
-    {#each messages as message}
-        <div class="message">
-            <div class="profile">
-                {#if message.profile.picture}
-                    <img src="{message.profile.picture}" alt="profile_photo"/>
-                {:else}
-                    <img src="profile_photo.png" alt="profile_photo"/>
-                {/if}
-                <b>{message.profile.name}:</b>
-            </div>
-            <p>{message.text}</p>
-        </div>
+    {#each people as person}
+        <p>{$userDictionary[person]?.name}</p>
+        {#if $chats[person]}
+            {#each $chats[person] as message}
+                <div class="message">
+                    <div class="profile">
+                        {#if $userDictionary[message.pubkey].picture}
+                            <img src="{$userDictionary[message.pubkey].picture}" alt="profile_photo"/>
+                        {:else}
+                            <img src="profile_photo.png" alt="profile_photo"/>
+                        {/if}
+                        <b>{$userDictionary[message.pubkey].name}:</b>
+                    </div>
+                    <p>{message.text}</p>
+                </div>
+            {/each}
+        {/if}
+        <hr/>
     {/each}
 </div>
 <form id="msgForm" class="msgForm">

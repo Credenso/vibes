@@ -1,5 +1,6 @@
 <script>
     import { flip } from 'svelte/animate'
+    import { fade } from 'svelte/transition'
 
 	import { postDictionary, contentDictionary } from '../lib/stores'
 	import { preload } from '../lib/util'
@@ -17,10 +18,10 @@
 <div class="sideScroll">
   {#if posts}
 	{#each posts as event (event.id)}
-      <div animate:flip={{ delay: 250, duration: 250 }}>
+      <div transition:fade={{ delay: 250, duration: 250 }} animate:flip={{ delay: 250, duration: 250 }}>
         <Post 
           postId="{event.id}"
-          image="{$contentDictionary[event.content.image]}"
+          image="{$contentDictionary[event.content.image].url}"
           />
       </div>
 	{/each}
@@ -40,6 +41,8 @@
   }
 
   .sectionHeader {
+    font-family: "Comfortaa";
+    font-weight: bold;
     color: white;
     width: 75%;
     border-radius: 0 1em 1em 0;

@@ -9,6 +9,8 @@ import {
     VerifiedEvent,
     UnsignedEvent,
     relayInit,
+    nip04,
+    nip44,
     Relay,
     SimplePool,
 } from "nostr-tools";
@@ -131,7 +133,8 @@ export enum Kind {
     "profile" = 0,
     "post" = 1,
     "album" = 2,
-    "follow" = 5, //??
+    "contacts" = 3, //??
+    "message" = 4, //??
     "reaction" = 7,
     "vibe" = 1618,
 }
@@ -148,6 +151,19 @@ export const newProfileEvent = (
     public_key: string,
 ) => {
     return genericUnsignedEvent(Kind.profile, JSON.stringify(profile_metadata), public_key, []);
+};
+
+export const newMessageEvent = async (
+    message: string,
+    public_key: string,
+    secret_key: string,
+    target: string,
+) => {
+    //let key = nip44.getSharedSecret(secret_key, target)
+    //let ciphertext = nip44.encrypt(key, message)
+    let ciphertext = await nip04.encrypt(secret_key, target, message)
+    let tags = [["p", target]]
+    return genericUnsignedEvent(Kind.message, ciphertext, public_key, tags);
 };
 
 export const newPostEvent = (
@@ -178,6 +194,20 @@ export const newReactionEvent = (
         [
             [Tag.event, post.id],
             [Tag.pubkey, post.pubkey]
+        ]
+    );
+};
+
+export const newContactsEvent = (
+    public_key: string,
+    contactList: string[]
+) => {
+    return genericUnsignedEvent(
+        Kind.contacts, 
+        "", 
+        public_key, 
+        [
+            ...contactList
         ]
     );
 };

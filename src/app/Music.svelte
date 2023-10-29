@@ -1,19 +1,18 @@
 <script>
-  import { activeSong, queue } from '../lib/stores.js'
+  import { activeSong, postDictionary, contentDictionary, activePost, modal, queue } from '../lib/stores.js'
   import { clickOutside, secondsToTime } from '../lib/util.ts'
 
   import { onMount } from 'svelte'
 
   export let audioPlayer;
-  export let searchOpen;
+  export let activeWidget;
 
-  let open = false
   export let isPlaying
   let hasAppeared = false
 
   // These are reactive bindings, they update whenever
   // one of the mentioned values changes
-  $: if (searchOpen) open = false;
+  $: open = (activeWidget === 'music')
   $: isPlaying, setPlayPauseIcon(isPlaying)
   let progress = undefined
 
@@ -82,7 +81,7 @@
 	  if (isPlaying & !seeking) {
 		  elapsed = secondsToTime(audioPlayer.currentTime)
 		  duration = secondsToTime(audioPlayer.duration)
-		  progress = Math.ceil((audioPlayer.currentTime / audioPlayer.duration) * 100)
+		  progress = (audioPlayer.currentTime / audioPlayer.duration) * 100
 
 		  if (progress) {
 			  const widthValue = `max(3.25rem, ${progress}%)`
@@ -133,7 +132,7 @@
 		  if (open) seek(e)
 
 		  longpress = undefined
-		  open = true
+		  activeWidget = 'music'
 	  }, 250)
   }
 
@@ -141,6 +140,7 @@
 	  e.preventDefault()
 	  if (longpress) {
 		  // Short press
+		  console.log('target', e.target.id)
 		  switch(e.target.id) {
 			  case "prev":
 				  previousSong();
@@ -151,9 +151,18 @@
 			  case "next":
 				  nextSong();
 				  break;
+			  case "":
+				  const currentSong = Object.keys($contentDictionary).find(key => $activeSong.includes($contentDictionary[key].content))
+				  const songPost = Object.keys($postDictionary).find(key => $postDictionary[key].content?.audio.includes(currentSong))
+				  $activePost = songPost
+				  $modal = 'details'
+				  break;
 		  }
 
 		  console.log('shortpress')
+		  //$modal = 'details'
+		  //console.log(
+		  //activeSong.set(Object.keys($postDictionary).find(key))
 		  clearTimeout(longpress)
 	  }
   }
@@ -177,7 +186,7 @@
 	id="musicMenu"
 	class:hasAppeared
 	class:open 
-	use:clickOutside={() => open = false}
+ 	use:clickOutside={() => { if (activeWidget === 'music') activeWidget = undefined }}
 
 	on:touchstart={(e) => buttonDown(e) }
 	on:touchend={(e) => buttonUp(e) }
@@ -233,9 +242,8 @@
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		height: 3.25em;
 		width: 3.25em;
-		transition: all 0.2s ease-in-out;
-		transition: width 0.2s ease-in-out;
-		transition: left 0.5s ease-in-out;
+		max-width: 40em;
+		transition: all 0.3s ease-in-out;
 		justify-content: center;
 		border: 2px solid white;
 		column-gap: 0.5em;
@@ -290,6 +298,7 @@
 		padding-left: 1.5em;
 		z-index: 100;
 		flex-grow: 1;
+		width: 5rem;
 	}
 
 	.duration {
@@ -298,11 +307,11 @@
 		padding-right: 1.5em;
 		z-index: 100;
 		flex-grow: 1;
+		width: 5rem;
 	}
 
 	button.open {
 		width: 75%;
-		max-width: 40em;
 		border-radius: 1.625em 1.625em 1.625em 1.625em;
 		transition: width 0.3s ease-in-out;
 	}

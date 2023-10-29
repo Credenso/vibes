@@ -1,11 +1,11 @@
 <script>
   import KeyEditor from './KeyEditor.svelte'
-  import { onMount } from 'svelte'
   import { 
     initRelay,
     RELAY_URL,
     genKeys,
     newProfileEvent,
+    newContactsEvent,
     signEvent,
     publishEvent
   } from '../lib/nostr'
@@ -18,6 +18,9 @@
     keys, 
     hyper, 
     modal, 
+    members,
+    contacts,
+    chats,
     relay 
   } from '../lib/stores'
 
@@ -35,7 +38,9 @@
 
   export let profile = undefined
   let metadata = {}
+  $: invalid = ($members.names && $members.names[metadata?.username] !== undefined)
   let posts = []
+  let following = undefined
   let saving
 
   let files = []
@@ -53,18 +58,28 @@
     }
   })
 
+  const hyperImage = async (id) => {
+    const event = $contentDictionary[id]
+    const mime = event.tags.find(t => t[0] === "m")[1]
+    const content = await $hyper.drive.get(event.content)
+    if (await content) {
+      return `data:${mime};base64,${b4a.toString(content, 'base64')}`
+    } else {
+      return undefined
+    }
+  }
+
   const updateAvatar = async (profile) => {
     if (profile?.avatar) {
-      const address = $contentDictionary[profile.avatar]
+      const address = $contentDictionary[profile.avatar].url
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
-        const hyperfile = await $hyper.drive.get(filename)
+        const hyperfile = await $hyper.drive.exists(filename)
         if (hyperfile) {
           console.log('avatar hyperfile', hyperfile)
-          avatar = hyperImage(hyperfile)
+          avatar = await hyperImage(profile.avatar)
         } else {
-          console.log('avatar address: ', address)
           avatar = address
         }
       }
@@ -73,38 +88,40 @@
 
   const updateBanner = async (profile) => {
     if (profile?.banner) {
-      const address = $contentDictionary[profile.banner]
+      const address = $contentDictionary[profile.banner].url
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
-        const hyperfile = await $hyper.drive.get(filename)
+        const hyperfile = await $hyper.drive.exists(filename)
         if (hyperfile) {
           console.log('banner hyperfile', hyperfile)
-          banner = `url(${hyperImage(hyperfile)})`
+          banner = `url(${await hyperImage(profile.banner)})`
         } else {
-          console.log('banner address: ', address)
           banner = `url(${address})`
         }
       }
     }
   }
 
+  // Not great
   contentDictionary.subscribe(async dict => {
-    updateAvatar(metadata)
-    updateBanner(metadata)
+    window.setTimeout(() => {
+      updateAvatar(metadata)
+      updateBanner(metadata)
+    }, 100)
   })
 
+  contacts.subscribe(list => {
+    following = list?.find(contact => { return profile && contact[1] === profile })
+  })
   // Probably shouldn't be for active user?
   activeUser.subscribe(async id => {
     profile = id
     metadata = $userDictionary[id] || { name: "NPC" }
+    following = $contacts.find(contact => { return profile && contact[1] === profile })
 
     if (metadata && metadata.station === undefined) {
       metadata.station = 'solar.credenso.cafe'
-    }
-
-    if (metadata && metadata.username === "" || metadata.username === undefined) {
-      metadata.username = metadata?.name.toLowerCase()
     }
 
     posts = Object.keys($postDictionary)
@@ -115,30 +132,44 @@
   })
 
   const handleChat = (e) => {
-    console.log('gonna chat! (eventually)')
+    $modal = "direct"
   }
 
   const handleFollow = (e) => {
     console.log('I want to hear from this person')
+    const follow = ["p",profile,`wss://${metadata.station}`, metadata.username]
+    let newContacts
+
+    if ($contacts.length < 1) {
+      newContacts = [follow] 
+    } else {
+      newContacts = [...$contacts, follow]
+    }
+
+    $contacts = newContacts
+    const ev = newContactsEvent($keys.publicKey, $contacts)
+    const signed = signEvent(ev, $keys.privateKey)
+    publish(signed)
+  }
+
+  const handleUnfollow = (e) => {
+    console.log('I no longer want to hear from this person')
+    $contacts = $contacts.filter(contact => { return contact[1] && contact[1] !== profile })
+    const ev = newContactsEvent($keys.publicKey, $contacts)
+    const signed = signEvent(ev, $keys.privateKey)
+    publish(signed)
   }
 
   const imageFromPost = (id) => {
     const imgID = $postDictionary[id].content.image
-    return $contentDictionary[imgID]
-  }
-
-  // TODO: Make this work
-  const hyperImage = async (content) => {
-    if (content) {
-      return URL.createObjectURL(new Blob([content.buffer]))
-    } else {
-      return undefined
-    }
+    return $contentDictionary[imgID].url
   }
 
   const publish = (e) => {
     publishEvent($relay, e)
-    $hyper.log.append(JSON.stringify(e))
+
+    // TODO: Reintegrate Hyperdrive
+    //$hyper.log.append(JSON.stringify(e))
   }
 
   // This function pushes the modified profile data to the 
@@ -152,12 +183,10 @@
     // We remove the empty files so they don't get posted
     // TODO: fix the crash on uploading an empty file
     if (formData.get('avatar').name === "") {
-      console.log('removing avatar')
       formData.delete('avatar')
     }
 
     if (formData.get('banner').name === "") {
-      console.log('removing banner')
       formData.delete('banner')
     }
 
@@ -183,11 +212,12 @@
         return e
       }))
 
-      // This uploads a copy of all the files to our hyperdrive
-      await Promise.all(Array.from(files).map(async f => {
-        const fileBuffer = await f.arrayBuffer()
-        await $hyper.drive.put(f.name.replaceAll(/[#? ]/g, ""), fileBuffer)
-      }))
+      // TODO: Reintegrate Hyperdrive
+      //// This uploads a copy of all the files to our hyperdrive
+      //await Promise.all(Array.from(files).map(async f => {
+      //  const fileBuffer = await f.arrayBuffer()
+      //  await $hyper.drive.put(f.name.replaceAll(/[#? ]/g, ""), fileBuffer)
+      //}))
 
       // Make sure the filepath is just a name
       if (metadata?.avatar?.includes('fakepath')) {
@@ -225,6 +255,11 @@
   // 
   const register = async (e) => {
     e.preventDefault()
+    metadata.username = metadata.username.toLowerCase()
+    if (metadata.name === "NPC") {
+      metadata.name = metadata.username
+    }
+
     if (metadata?.nip05 === undefined ) {
       const getNonce = await fetch(`http://solar.credenso.cafe/register?username=${metadata.username}`)
       const nonce = await getNonce.text()
@@ -255,7 +290,7 @@
 </script>
 
 {#if metadata}
-  {#if editable}
+  {#if editable && metadata.nip05 }
     <button class="editButton" on:click={() => editing = !editing}>✏️</button>
   {/if}
   {#if editing}
@@ -264,8 +299,8 @@
         <div class="banner formEntry" style={`background-image: ${banner || "inherit"}`} >
         <img class="pic" src="{ avatar || "profile_photo.png" }" alt="default profile picture" />
         <input class="name" type="text" name="name" id="name" bind:value={metadata.name} />
-        {#if metadata.log}
-        <span class="editPic" on:click={() => picMenu = !picMenu}>📷</span>
+        {#if metadata.nip05}
+          <span class="editPic" on:click={() => picMenu = !picMenu}>📷</span>
         {/if}
       </div>
       <div class="hidden" class:picMenu>
@@ -288,7 +323,7 @@
         <KeyEditor />
       </div>
       <table>
-        <tr on:click={() => identityMenu = !identityMenu}>
+        <tr on:click={() => identityMenu = false && !identityMenu}>
           <td>📡</td>
           <td>{metadata.nip05 || '[unregistered]' }</td>
         </tr>
@@ -299,23 +334,31 @@
         {/if}
         <div class="formEntry">
           <label for="username">Username.</label>
-          <input type="text" id="username" bind:value={metadata.username} />
+          <input class:invalid type="text" id="username" bind:value={metadata.username} />
         </div>
         <div class="formEntry">
           <label for="station">Station.</label>
           <input type="text" id="station" bind:value={metadata.station} disabled/>
         </div>
-        {#if metadata?.nip05 === undefined }
+        {#if metadata?.nip05 === undefined}
           <button on:click={register}>Register</button>
         {/if}
+      </div>
+      <div class="formEntry">
+        <label for="bio">Bio.</label>
+        <textarea type="text" id="bio" placeholder="A bit about me..." bind:value={metadata.bio} />
+      </div>
+      <div class="formEntry">
+        <label for="site">Site.</label>
+        <input type="url" id="site" placeholder="https://myhome.page" bind:value={metadata.site} />
       </div>
       <hr>
       <button type="submit">Save</button>
     </form>
   {:else}
     <div class="banner" style={`background-image: ${banner || "inherit"}`} >
-      <img class="pic" src="{ avatar || "profile_photo.png" }" alt="default profile picture" />
-      <b class="name">{metadata.name}{(metadata.name !== "NPC" && metadata.log === undefined) ? " (NPC)" : ""} </b>
+      <img class="pic" src="{ avatar || "profile_photo.png" }" alt="profile picture" />
+      <b class="name">{metadata.name}</b>
     </div>
     <table>
       <tr>
@@ -326,24 +369,53 @@
         <td>📡</td>
         <td>{metadata.nip05 || '[unregistered]' }</td>
       </tr>
+      {#if metadata.site}
+        <tr>
+          <td>🌐</td>
+          <td><a target="_blank" href="{metadata.site}">{metadata.site}</a></td>
+        </tr>
+      {/if}
     </table>
+    {#if metadata.bio}
+      <blockquote>{metadata.bio}</blockquote>
+    {/if}
     {#if $activeUser !== $keys.publicKey}
       <div class="actions">
         <button on:click={handleChat}>Chat</button>
-        <button on:click={handleFollow}>Follow</button>
+        {#if following}
+          <button on:click={handleUnfollow}>Unfollow</button>
+        {:else}
+          <button on:click={handleFollow}>Follow</button>
+        {/if}
+      </div>
+    {:else if metadata.nip05 === undefined}
+      <b>Register Here</b>
+      <div class="formEntry">
+        <label for="username">Username.</label>
+        <input class:invalid type="text" id="username" bind:value={metadata.username} />
+      </div>
+      <p class="warning" class:invalid>{metadata.username === "" ? "Add a username" : "Username taken"}</p>
+      <div class="formEntry">
+        <label for="station">Station.</label>
+        <input type="text" id="station" bind:value={metadata.station} disabled/>
+      </div>
+      <div class="actions">
+        <button on:click={register}>Register</button>
       </div>
     {/if}
-    <hr>
-    <p>Recent Posts</p>
-    <div class="posts">
-    {#each posts.reverse() as id (id)}
-      <Post
-        postId="{id}"
-        image="{imageFromPost(id)}"
-        form="short"
-        />
-    {/each}
-    </div>
+    {#if posts.length > 0}
+      <hr>
+      <p class="recent">Recent Posts</p>
+      <div class="posts">
+        {#each posts.reverse() as id (id)}
+          <Post
+            postId="{id}"
+            image="{imageFromPost(id)}"
+            form="short"
+            />
+        {/each}
+      </div>
+    {/if}
   {/if}
 {/if}
 
@@ -366,13 +438,17 @@
   }
 
   table {
+    background: #EEEEEE;
     max-width: 100%;
+    border-radius: 0.5em;
+    margin-top: 0.5em;
   }
 
   td {
     text-align: left;
-    max-width: 80%;
+    max-width: min(32em, 66vw);
     padding-right: 0.5em;
+    padding-left: 0.5em;
     overflow: hidden;
   }
 
@@ -420,7 +496,7 @@
     font-weight: bold;
   }
 
-  .formEntry input {
+  .formEntry input,textarea {
     background-color: #EEEEEE;
     border-radius: 1em;
     padding: 0.5em;
@@ -438,6 +514,7 @@
     display: flex;
     flex-direction: row;
     justify-content: center;
+    margin: 1em;
     gap: 1em;
   }
 
@@ -465,5 +542,37 @@
 
   .mono {
     font-family: monospace;
+  }
+
+  .warning {
+    display: none;
+    font-size: 0.7em;
+    color: red;
+  }
+
+  .warning.invalid {
+    display: block
+  }
+
+  input.invalid {
+    border: 2px solid red;
+  }
+
+  input#username {
+    text-transform: lowercase;
+  }
+
+  blockquote {
+    margin: 0.5em;
+    color: #333333;
+    text-align: left;
+  }
+
+  .recent {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: left;
+    margin: 1rem;
+    margin-bottom: 0;
   }
 </style>

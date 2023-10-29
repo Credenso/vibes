@@ -1,23 +1,7 @@
 <script>
-  import CommentsBlock from './CommentsBlock.svelte'
-  import TagsBlock from './TagsBlock.svelte'
-  import { onMount, onDestroy } from 'svelte'
   import { 
-    initRelay,
-    RELAY_URL,
-    newProfileEvent,
-    publishEvent
-  } from '../lib/nostr'
-  import { 
-    postDictionary,
-    userDictionary,
-    contentDictionary,
-    activePost,
-    activeSong,
-    queue,
     modal
   } from '../lib/stores'
-
 
   const openModal = () => {
     $modal = true
@@ -58,10 +42,11 @@
     height: 0;
     border-radius: 1em;
     top: 10vh;
-    left: 5vw;
+    left: 50vw;
     box-shadow: 0 0 10em 0.5em;
     z-index: 201;
     transition: all 0.3s ease-in-out;
+    transform: translateX(-50%);
   }
 
   .modal.modalView {

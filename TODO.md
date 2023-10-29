@@ -46,6 +46,13 @@
 - [x] User Registration - M
     - [x] Update Profile screen
     - [x] NIP-05 compatibility
+    - [x] Username validation
+
+- [ ] Following artists
+    - [x] Create list of follows
+    - [ ] Create list of blocks
+
+- [x] Direct Messages - L
 
 - [ ] upgrade upload screen - M
     - [ ] resize uploaded images - S
@@ -62,6 +69,8 @@
 - [x] Login flow with Solar
 
 - [ ] Hypercore Chats
+
+- [ ] Download followed Hypercores
 
 - [ ] User classes (Admin, creator, NPC)
     - [ ] Registration (Proof of Work)
@@ -88,12 +97,14 @@
 - [x] sanitize filenames (#, ?)
 - [ ] better fonts
 
+- [ ] videos (can this be v1.1?)
+
 # Next Steps - Decentralization
 - [ ] manually configure relay and ipfs address
 - [ ] reconsider IPFS vs torrents / .magnet links vs dat protocol
 - [x] fix nostr compatibility
 - [ ] Allow for offline collections - listening & download https://web.dev/learn/pwa/offline-data/
-- [ ] refactor Modal (there should just be one)
-- [ ] videos
+- [x] refactor Modal (there should just be one)
 - [ ] nostr lib typescript
 - [ ] interop with iris (Nostr client)
+- [ ] Reposting? - M

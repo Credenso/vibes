@@ -53,7 +53,7 @@
 
   activeSong.subscribe((song) => {
     if (postType === "single") {
-      if (song && song === $contentDictionary[post?.content?.audio]) {
+      if (song && song === $contentDictionary[post?.content?.audio].url) {
         currentlyPlaying = true
       } else {
         currentlyPlaying = false
@@ -62,7 +62,7 @@
     } else if (postType === "collection") {
       currentlyPlaying = false
       tracks.forEach((id) => {
-        if (song === $contentDictionary[id]) {
+        if (song === $contentDictionary[id].url) {
           currentlyPlaying = true
         }
       })
@@ -86,15 +86,15 @@
       tracks.forEach((id,i) => {
         // If it's the first song, play it. Otherwise, queue it.
         if (i === 0) {
-          activeSong.set($contentDictionary[id])
+          activeSong.set($contentDictionary[id].url)
         } else {
-          $queue.push($contentDictionary[id])
+          $queue.push($contentDictionary[id].url)
         }
       })
     } else if (postType === "single") {
       // otherwise it's a single, we don't have to worry about
       // Any of these strange shenannies
-      activeSong.set($contentDictionary[post.content.audio])
+      activeSong.set($contentDictionary[post.content.audio].url)
     }
   }
 
@@ -164,6 +164,10 @@
     border-radius: .375rem;
   }
 
+  .about {
+    margin: 0.25em;
+  }
+
   .box {
     display: flex;
     position: relative;
@@ -176,11 +180,12 @@
     flex-direction: column;
     justify-content: space-between;
     padding-bottom: 0.5rem;
-    border: 3px solid #f8a147;
+    border: 5px solid #f8a147;
+    box-shadow: 1px 1px 5px lightgrey;
   }
 
   .collection {
-    border: 3px solid #028a9b;
+    border: 5px solid #028a9b;
   }
 
   .art {

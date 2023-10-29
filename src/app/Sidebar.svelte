@@ -21,6 +21,8 @@
 
 <MenuButton  bind:open />
 <aside class:open>
+  	<h1>Menu</h1>
+	<hr>
 	<nav use:clickOutside={closeIfOpen}>
 		<slot />
 	</nav>
@@ -29,7 +31,7 @@
 <style>
 	aside {
 		position: fixed;
-		width: 20em;
+		width: min(20em, 60vw);
 		height: 100%;
 		background-color: #EEEEEE;
 		border-right-width: 2px;
@@ -40,11 +42,23 @@
 		transition: left 0.3s ease-in-out;
 	}
 
+	h1 {
+		font-size: 1.5em;
+		font-weight: bold;
+		margin: 1em;
+	}
+
+	hr {
+		margin: 1em;
+	}
+
 	nav {
 		display: flex;
 		flex-direction: column;
 		padding: 3rem;
+		padding-top: 0;
 		font-size: 1.25rem;
+		align-items: start;
 	}
 	
 	.open {

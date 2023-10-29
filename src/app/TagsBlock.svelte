@@ -20,15 +20,19 @@
   let vibes = $vibesDictionary[event.id]
 
   const sortedVibes = (vibesDict) => {
-    const sorted = Object.keys(vibes).sort((v1,v2) => {
-      if (vibes[v1].length > vibes[v2].length) {
-        return -1
-      } else {
-        return 1
-      }
-    })
+    if (vibes) {
+      const sorted = Object.keys(vibes).sort((v1,v2) => {
+        if (vibes[v1].length > vibes[v2].length) {
+          return -1
+        } else {
+          return 1
+        }
+      })
 
-    return sorted
+      return sorted
+    } else {
+      return []
+    }
   }
 
   let vibesList = sortedVibes(vibes)

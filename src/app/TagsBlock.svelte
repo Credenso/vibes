@@ -18,6 +18,7 @@
 
   let event = $postDictionary[$activePost]
   let vibes = $vibesDictionary[event.id]
+  let newVibe = undefined
 
   const sortedVibes = (vibesDict) => {
     if (vibes) {
@@ -57,12 +58,32 @@
   })
 
   const vote = (vibe) => {
-    if (!vibes[vibe].includes($keys.publicKey)) {
+    if (vibes[vibe] === undefined || !vibes[vibe].includes($keys.publicKey)) {
       const rxn = newReactionEvent(`${vibe}`, $keys.publicKey, event)
       publishEvent($relay, signEvent(rxn, $keys.privateKey))
     } else {
       console.log('you already voted!')
     }
+  }
+
+  const addVibe = (e) => {
+    e.preventDefault()
+    newVibe = ""
+    const input = document.getElementById('vibeInput')
+    const enter = (e) => {
+      if (e.key === "Enter") {
+        vote(newVibe)
+        input.blur()
+      }
+    }
+
+    input.addEventListener('blur', () => {
+      newVibe = undefined
+      input.removeEventListener('keydown', enter)
+    })
+
+    input.addEventListener('keydown', enter) 
+    window.setTimeout(() => input.focus(), 10)
   }
   
 </script>
@@ -80,6 +101,14 @@
         {vibe}
       </button>
     {/each}
+    {#if event.pubkey === $keys.publicKey && vibesList.length < 10}
+      <button id="add" on:click={addVibe}>
+        <input class:visible={newVibe !== undefined} id="vibeInput" type=text bind:value={newVibe} />
+        {#if newVibe === undefined}
+          + new
+        {/if}
+      </button>
+    {/if}
   </section>
 {/if}
 
@@ -99,7 +128,7 @@
     margin-right: 1em;
   }
 
-  button:before {
+  section button:before {
     content: "~"
   }
 
@@ -108,12 +137,32 @@
     100% { background-color: #FFFFFF; }
   }
 
+  button#add {
+    float: right;
+    font-size: 0.7em;
+  } 
+
+  button#add:before {
+    content: ""
+  } 
+
   button:focus {
     animation: fadeBlue 1s ease-out;
   }
 
   button:active {
     animation: none;
+  }
+
+  button input {
+    height: 2em;
+    border-radius: 1em;
+    padding-left: 0.5em;
+    display: none;
+  }
+
+  button input.visible {
+    display: block;
   }
 
   hr {

@@ -37,6 +37,8 @@
   let identityMenu = false
 
   export let profile = undefined
+  export let invite = undefined
+
   let metadata = {}
   $: invalid = ($members.names && $members.names[metadata?.username] !== undefined)
   let posts = []
@@ -71,7 +73,7 @@
 
   const updateAvatar = async (profile) => {
     if (profile?.avatar) {
-      const address = $contentDictionary[profile.avatar].url
+      const address = $contentDictionary[profile.avatar]?.url
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
@@ -88,7 +90,7 @@
 
   const updateBanner = async (profile) => {
     if (profile?.banner) {
-      const address = $contentDictionary[profile.banner].url
+      const address = $contentDictionary[profile.banner]?.url
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
@@ -260,20 +262,24 @@
       metadata.name = metadata.username
     }
 
-    if (metadata?.nip05 === undefined ) {
-      const getNonce = await fetch(`http://solar.credenso.cafe/register?username=${metadata.username}`)
-      const nonce = await getNonce.text()
-      const pubKey = $keys.publicKey
-      const signedNonce = schnorr.sign(nonce, $keys.privateKey)
-      const hexSig = b4a.toString(signedNonce, 'hex')
+    if (invite && metadata?.nip05 === undefined ) {
+      //const getNonce = await fetch(`http://solar.credenso.cafe/register?username=${metadata.username}`)
+      //const nonce = await getNonce.text()
+      //const pubKey = $keys.publicKey
+      //const signedNonce = schnorr.sign(nonce, $keys.privateKey)
+      //const hexSig = b4a.toString(signedNonce, 'hex')
 
-      // This will be a request to the Solar server they specify
+      const pubKey = $keys.publicKey
+      const signedInvite = schnorr.sign(invite.code, $keys.privateKey)
+      const hexSig = b4a.toString(invite.code, 'hex')
+
+      // TODO: Adapt this to other domain names
       const results = await fetch(`http://solar.credenso.cafe/register?username=${metadata.username}`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain"
         },
-        body: JSON.stringify({ pubKey, hexSig })
+        body: JSON.stringify({ pubKey, hexSig, invite })
       })
 
       console.log('registration complete')
@@ -388,7 +394,7 @@
           <button on:click={handleFollow}>Follow</button>
         {/if}
       </div>
-    {:else if metadata.nip05 === undefined}
+    {:else if invite.code && metadata.nip05 === undefined}
       <b>Register Here</b>
       <div class="formEntry">
         <label for="username">Username.</label>
@@ -399,6 +405,7 @@
         <label for="station">Station.</label>
         <input type="text" id="station" bind:value={metadata.station} disabled/>
       </div>
+      <input type="hidden" id="invite" bind:value={invite.code} disabled/>
       <div class="actions">
         <button on:click={register}>Register</button>
       </div>

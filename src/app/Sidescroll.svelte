@@ -21,7 +21,7 @@
       <div transition:fade={{ delay: 250, duration: 250 }} animate:flip={{ delay: 250, duration: 250 }}>
         <Post 
           postId="{event.id}"
-          image="{$contentDictionary[event.content.image].url}"
+          image="{$contentDictionary[event.content?.image].url}"
           />
       </div>
 	{/each}

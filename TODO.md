@@ -39,9 +39,10 @@
 
 - [x] Queue songs / Play Now - S
 
-- [x] Profile Page - M
+- [ ] Profile Page - M
     - [x] Edit Profile - M
     - [x] Profile Pictures - S
+    - [ ] NIP-24 compliance - S
 
 - [x] User Registration - M
     - [x] Update Profile screen
@@ -53,6 +54,9 @@
     - [ ] Create list of blocks
 
 - [x] Direct Messages - L
+
+- [ ] Delete Posts - M
+- [ ] Reposts - M
 
 - [ ] upgrade upload screen - M
     - [ ] resize uploaded images - S
@@ -72,15 +76,15 @@
 
 - [ ] Download followed Hypercores
 
-- [ ] User classes (Admin, creator, NPC)
-    - [ ] Registration (Proof of Work)
-    - [ ] permissions for
-        - [ ] commenting
-        - [ ] chatting
-        - [ ] following
-        - [ ] voting
-        - [ ] uploading
-        - [ ] inviting
+- [x] User classes (Admin, creator, NPC)
+    - [x] Registration 
+    - [x] permissions for
+        - [x] commenting
+        - [x] chatting
+        - [x] following
+        - [x] voting
+        - [x] uploading
+        - [x] inviting
 
 - [x] Basic groupchat - S
 
@@ -98,6 +102,7 @@
 - [ ] better fonts
 
 - [ ] videos (can this be v1.1?)
+- [ ] Currently listening to (NIP-38)
 
 # Next Steps - Decentralization
 - [ ] manually configure relay and ipfs address
@@ -107,4 +112,4 @@
 - [x] refactor Modal (there should just be one)
 - [ ] nostr lib typescript
 - [ ] interop with iris (Nostr client)
-- [ ] Reposting? - M
+- [ ] Reposting? - M (NIP-18)

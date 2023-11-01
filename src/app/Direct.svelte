@@ -85,7 +85,7 @@
   {/if}
 </div>
 
-<form on:submit={handleComment} class="chatBox">
+<form on:submit={handleComment} class="chatBox me">
   {#if uploading}
     <div class="deets">
       <p>Posting...</p>
@@ -162,6 +162,8 @@
     margin: 0.5em;
     padding: 0.5em;
     width: fit-content;
+    border-color: #445566;
+    background-color: #EEEEEE;
   }
 
   form.chatBox {
@@ -182,17 +184,17 @@
     cursor: pointer;
   }
 
-  .chatBox:nth-child(3n) {
+  .me:nth-child(3n) {
     border-color: #de5a5a;
     background-color: #de5a5a33;
   }
 
-  .chatBox:nth-child(3n+1) {
+  .me:nth-child(3n+1) {
     border-color: #f8a147;
     background-color: #f8a14733;
   }
 
-  .chatBox:nth-child(3n+2) {
+  .me:nth-child(3n+2) {
     border-color: #028a9b;
     background-color: #028a9b33;
   }

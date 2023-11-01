@@ -22,5 +22,6 @@ export const contacts = writable([]);
 export const chats = writable({});
 export const relay = writable(undefined);
 export const modal = writable(undefined);
+export const userClass = writable("npc");
 export const keys = writable({});
 export const hyper = writable({});

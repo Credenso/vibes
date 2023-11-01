@@ -15,6 +15,7 @@
   import Music from './app/Music.svelte'
   import Chat from './app/Chat.svelte'
   import Direct from './app/Direct.svelte'
+  import Invite from './app/Invite.svelte'
 
   import Hyperdrive from 'hyperdrive'
 
@@ -49,6 +50,8 @@
     activePost,
     keys,
     modal,
+    activeUser,
+    userClass,
     members,
     hyper,
     contacts,
@@ -81,49 +84,74 @@
   audioPlayer.crossOrigin = true
   $: isPlaying = !audioPlayer.paused
 
+  // Grab querystring data
+  const query = new URLSearchParams(window.location.search)
+  let invite = {
+    code: query.get('invite'),
+    member: query.get('member')
+  }
+
+  // Then replace it
+  var href = window.location.href;
+  var url  = href.split('?invite=');
+  window.history.replaceState(null, null, url[0]);
+
   let profile = {};
 
   // TODO: Reintegrate Hypercore
   // This is a function for turning a profile into
   // a collection of that person's nostr events
-  const cloneCore = async (profile) => {
-    //if (profile.drive) {
-    //  console.log('drive', profile.drive)
-    //}
+  //const cloneCore = async (profile) => {
+  //  //if (profile.drive) {
+  //  //  console.log('drive', profile.drive)
+  //  //}
 
-    if (profile.log && $hyper.store) {
-      let existentData = $hyper.store.get({ key: profile.log })
+  //  if (profile.log && $hyper.store) {
+  //    let existentData = $hyper.store.get({ key: profile.log })
 
-      await existentData.ready()
+  //    await existentData.ready()
 
-      const discover = $hyper.swarm.join(existentData.discoveryKey)
-      const foundPeers = store.findingPeers()
-      $hyper.swarm.flush().then(() => foundPeers())
-      await discover.flushed()
+  //    const discover = $hyper.swarm.join(existentData.discoveryKey)
+  //    const foundPeers = store.findingPeers()
+  //    $hyper.swarm.flush().then(() => foundPeers())
+  //    await discover.flushed()
 
-      await existentData.update({ wait: true })
+  //    await existentData.update({ wait: true })
 
-      if (existentData.length > 0) {
-        console.log('copying existent data.')
-        let position = 0
-        await $hyper.log.ready()
-        for await (const block of existentData.createReadStream({ start: 0, end: existentData.length })) {
-          $hyper.log.append(block)
-        }
-      }
-    }
-  }
+  //    if (existentData.length > 0) {
+  //      console.log('copying existent data.')
+  //      let position = 0
+  //      await $hyper.log.ready()
+  //      for await (const block of existentData.createReadStream({ start: 0, end: existentData.length })) {
+  //        $hyper.log.append(block)
+  //      }
+  //    }
+  //  }
+  //}
 
+  // This either generates new keys and saves
+  // them to local storage, or just uses the
+  // ones that are already there.
+  // It isn't the most secure, but it works 
+  // for now.
+  $keys = unsecuredLocalKeys()
 
   activePost.subscribe((post) => {
     console.log('active post is...', post)
   })
 
-  // This either generates new keys and saves
-  // them to local storage, or just uses the
-  // ones that are already there.
-  // It isn't secure, but it works for now.
-  $keys = unsecuredLocalKeys()
+  members.subscribe(dict => {
+    if (dict.admins) {
+      if (dict.admins.includes($keys.publicKey)) {
+        $userClass = "admin"
+      } else if (Object.values(dict.names).includes($keys.publicKey)) {
+        $userClass = "member"
+      } else {
+        $userClass = "npc"
+      }
+      console.log('userclass is ', $userClass)
+    }
+  })
 
   // This is the function responsible for taking event data 
   // and turning it into something that our application can
@@ -243,7 +271,7 @@
   // processed without further latency
   onMount(async () => {
     // Nostr boostrap
-    $relay = await initRelay('ws://relay.localhost')
+    $relay = await initRelay('ws://relay.credenso.cafe')
 
     // We need to authenticate
     const sign = async (event) => {
@@ -400,6 +428,11 @@
     window.setTimeout(() => {
       loading = false;
       document.querySelector('section.is-preload').classList.remove('is-preload');
+
+      if (invite.code) {
+        $activeUser = $keys.publicKey
+        $modal = "member"
+      }
       // A higher number hides the time it takes to load API data
       // too much?
     }, 4000);
@@ -416,8 +449,11 @@
 <Sidebar bind:open={openMenu}>
   <button on:click={() => navTo("main")}>🏠 Home</button>
   <button on:click={() => navTo("chat")}>💬 Chat</button>
-  {#if profile?.nip05?.includes('solar.credenso.cafe')}
+  {#if $userClass !== 'npc'}
     <button on:click={() => navTo("upload")}>📁 Upload</button>
+  {/if}
+  {#if $userClass === 'admin'}
+    <button on:click={() => navTo("invite")}>✉️ Invite</button>
   {/if}
 </Sidebar>
 
@@ -426,7 +462,7 @@
     <Details />
   </div>
   <div class="hidden" class:visible={$modal === "member"}>
-    <Member />
+    <Member bind:invite />
   </div>
   <div class="hidden" class:visible={$modal === "direct"}>
     <Direct />
@@ -469,6 +505,11 @@
           <div class="hidden" class:visible={page === "chat"}>
             <Chat bind:profile />
           </div>
+          {#if $userClass === "admin"}
+            <div class="hidden" class:visible={page === "invite"}>
+              <Invite />
+            </div>
+          {/if}
         </section>
       </div>
     </div>

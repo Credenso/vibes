@@ -136,6 +136,11 @@ export enum Kind {
     "contacts" = 3, //??
     "message" = 4, //??
     "reaction" = 7,
+    "channelCreate" = 40,
+    "channelMetadata" = 41,
+    "channelMessage" = 42,
+    "channelHide" = 43,
+    "channelMute" = 44,
     "vibe" = 1618,
 }
 
@@ -240,6 +245,83 @@ export const newCommentEvent = (
         private_key, 
         tags
     );
+};
+
+// Public Chat
+export const newPubChannelEvent = (
+    // TODO: Profile interface
+    metadata: any,
+    public_key: string,
+) => {
+    if (metadata.name && metadata.about) {
+        return genericUnsignedEvent(Kind.channelCreate, JSON.stringify(metadata), public_key, []);
+    } else {
+        return { error: "invalid metadata" }
+    }
+};
+
+export const newPubChannelDataEvent = (
+    // TODO: Profile interface
+    metadata: any,
+    channel_id: string,
+    public_key: string,
+) => {
+    if (metadata.name && metadata.about && metadata.picture) {
+        return genericUnsignedEvent(Kind.channelMetadata, JSON.stringify(metadata), public_key, [["e", channel_id]]);
+    } else {
+        return { error: "invalid metadata" }
+    }
+};
+
+export const newPubChannelMessageEvent = (
+    // TODO: Profile interface
+    message: string,
+    channel_id: string,
+    public_key: string,
+    responding_to = undefined,
+) => {
+    let tags = [["e", channel_id, RELAY_URL, "root"]]
+    if (responding_to) {
+        const { r_pubkey, r_event_id } = responding_to
+        tags.push(["e", r_event_id, RELAY_URL, "reply"])
+        tags.push(["p", r_pubkey, RELAY_URL])
+    }
+
+    if (message !== undefined) {
+        return genericUnsignedEvent(Kind.channelMessage, message, public_key, tags);
+    } else {
+        return { error: "invalid metadata" }
+    }
+};
+
+export const newPubChannelHideEvent = (
+    // TODO: Profile interface
+    reason: Object,
+    message_id: string,
+    public_key: string,
+) => {
+    let tags = [["e", message_id]]
+
+    if (message !== undefined) {
+        return genericUnsignedEvent(Kind.channelHide, JSON.stringify(reason), public_key, tags);
+    } else {
+        return { error: "invalid metadata" }
+    }
+};
+
+export const newPubChannelMuteEvent = (
+    // TODO: Profile interface
+    reason: Object,
+    member_id: string,
+    public_key: string,
+) => {
+    let tags = [["p", member_id]]
+
+    if (message !== undefined) {
+        return genericUnsignedEvent(Kind.channelMute, JSON.stringify(reason), public_key, tags);
+    } else {
+        return { error: "invalid metadata" }
+    }
 };
 
 // --- Relay / Event Management ---

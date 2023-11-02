@@ -11,10 +11,10 @@
   } from '../lib/nostr'
 
   import { 
-    userDictionary, 
+    memberDictionary, 
     postDictionary, 
     contentDictionary, 
-    activeUser,
+    activeMember,
     keys, 
     hyper, 
     modal, 
@@ -30,7 +30,7 @@
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
 
-  $: editable = ($keys.publicKey === $activeUser)
+  $: editable = ($keys.publicKey === $activeMember)
   let editing = false
   let keyMenu = false
   let picMenu = false
@@ -40,7 +40,7 @@
   export let invite = undefined
 
   let metadata = {}
-  $: invalid = ($members.names && $members.names[metadata?.username] !== undefined)
+  $: invalid = ($members.names && $members.names[metadata?.name] !== undefined)
   let posts = []
   let following = undefined
   let saving
@@ -52,7 +52,7 @@
   modal.subscribe(m => {
     // Modal closed
     if (m === undefined) {
-      $activeUser = undefined
+      $activeMember = undefined
       avatar = undefined
       banner = undefined
       metadata = undefined
@@ -77,13 +77,13 @@
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
-        const hyperfile = await $hyper.drive.exists(filename)
-        if (hyperfile) {
-          console.log('avatar hyperfile', hyperfile)
-          avatar = await hyperImage(profile.avatar)
-        } else {
+        //const hyperfile = await $hyper.drive.exists(filename)
+        //if (hyperfile) {
+        //  console.log('avatar hyperfile', hyperfile)
+        //  avatar = await hyperImage(profile.avatar)
+        //} else {
           avatar = address
-        }
+        //}
       }
     }
   }
@@ -94,13 +94,13 @@
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
-        const hyperfile = await $hyper.drive.exists(filename)
-        if (hyperfile) {
-          console.log('banner hyperfile', hyperfile)
-          banner = `url(${await hyperImage(profile.banner)})`
-        } else {
+        //const hyperfile = await $hyper.drive.exists(filename)
+        //if (hyperfile) {
+        //  console.log('banner hyperfile', hyperfile)
+        //  banner = `url(${await hyperImage(profile.banner)})`
+        //} else {
           banner = `url(${address})`
-        }
+        //}
       }
     }
   }
@@ -116,10 +116,10 @@
   contacts.subscribe(list => {
     following = list?.find(contact => { return profile && contact[1] === profile })
   })
-  // Probably shouldn't be for active user?
-  activeUser.subscribe(async id => {
+  // Probably shouldn't be for active Member?
+  activeMember.subscribe(async id => {
     profile = id
-    metadata = $userDictionary[id] || { name: "NPC" }
+    metadata = $memberDictionary[id] || { display_name: "NPC" }
     following = $contacts.find(contact => { return profile && contact[1] === profile })
 
     if (metadata && metadata.station === undefined) {
@@ -139,7 +139,7 @@
 
   const handleFollow = (e) => {
     console.log('I want to hear from this person')
-    const follow = ["p",profile,`wss://${metadata.station}`, metadata.username]
+    const follow = ["p",profile,`wss://${metadata.station}`, metadata.name]
     let newContacts
 
     if ($contacts.length < 1) {
@@ -252,29 +252,20 @@
     saving = false
   }
 
-
-  // This function connects the current Hypercore session to the
-  // 
   const register = async (e) => {
     e.preventDefault()
-    metadata.username = metadata.username.toLowerCase()
-    if (metadata.name === "NPC") {
-      metadata.name = metadata.username
+    metadata.name = metadata.name.toLowerCase()
+    if (metadata.display_name === "NPC") {
+      metadata.display_name = metadata.name
     }
 
     if (invite && metadata?.nip05 === undefined ) {
-      //const getNonce = await fetch(`http://solar.credenso.cafe/register?username=${metadata.username}`)
-      //const nonce = await getNonce.text()
-      //const pubKey = $keys.publicKey
-      //const signedNonce = schnorr.sign(nonce, $keys.privateKey)
-      //const hexSig = b4a.toString(signedNonce, 'hex')
-
       const pubKey = $keys.publicKey
       const signedInvite = schnorr.sign(invite.code, $keys.privateKey)
       const hexSig = b4a.toString(invite.code, 'hex')
 
       // TODO: Adapt this to other domain names
-      const results = await fetch(`http://solar.credenso.cafe/register?username=${metadata.username}`, {
+      const results = await fetch(`http://solar.credenso.cafe/register?name=${metadata.name}`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain"
@@ -304,7 +295,7 @@
       <input type="hidden" name="pubkey" value={$keys.publicKey} />
         <div class="banner formEntry" style={`background-image: ${banner || "inherit"}`} >
         <img class="pic" src="{ avatar || "profile_photo.png" }" alt="default profile picture" />
-        <input class="name" type="text" name="name" id="name" bind:value={metadata.name} />
+        <input class="display_name" type="text" name="display_name" id="display_name" bind:value={metadata.display_name} />
         {#if metadata.nip05}
           <span class="editPic" on:click={() => picMenu = !picMenu}>📷</span>
         {/if}
@@ -322,7 +313,7 @@
       <table>
         <tr on:click={() => keyMenu = !keyMenu }>
           <td>🔑</td>
-          <td class="mono" name="pubkey">{$activeUser}</td>
+          <td class="mono" name="pubkey">{$activeMember}</td>
         </tr>
       </table>
       <div class="hidden" class:keyMenu>
@@ -339,8 +330,8 @@
           <b>Register Here</b>
         {/if}
         <div class="formEntry">
-          <label for="username">Username.</label>
-          <input class:invalid type="text" id="username" bind:value={metadata.username} />
+          <label for="name">Name.</label>
+          <input class:invalid type="text" id="name" bind:value={metadata.name} />
         </div>
         <div class="formEntry">
           <label for="station">Station.</label>
@@ -356,7 +347,7 @@
       </div>
       <div class="formEntry">
         <label for="site">Site.</label>
-        <input type="url" id="site" placeholder="https://myhome.page" bind:value={metadata.site} />
+        <input type="url" id="site" placeholder="https://myhome.page" bind:value={metadata.website} />
       </div>
       <hr>
       <button type="submit">Save</button>
@@ -364,28 +355,28 @@
   {:else}
     <div class="banner" style={`background-image: ${banner || "inherit"}`} >
       <img class="pic" src="{ avatar || "profile_photo.png" }" alt="profile picture" />
-      <b class="name">{metadata.name}</b>
+      <b class="name">{metadata.display_name}</b>
     </div>
     <table>
       <tr>
         <td>🔑</td>
-        <td class="mono">{$activeUser}</td>
+        <td class="mono">{$activeMember}</td>
       </tr>
       <tr>
         <td>📡</td>
         <td>{metadata.nip05 || '[unregistered]' }</td>
       </tr>
-      {#if metadata.site}
+      {#if metadata.website}
         <tr>
           <td>🌐</td>
-          <td><a target="_blank" href="{metadata.site}">{metadata.site}</a></td>
+          <td><a target="_blank" href="{metadata.website}">{metadata.website}</a></td>
         </tr>
       {/if}
     </table>
     {#if metadata.bio}
       <blockquote>{metadata.bio}</blockquote>
     {/if}
-    {#if $activeUser !== $keys.publicKey}
+    {#if $activeMember !== $keys.publicKey}
       <div class="actions">
         <button on:click={handleChat}>Chat</button>
         {#if following}
@@ -397,10 +388,10 @@
     {:else if invite.code && metadata.nip05 === undefined}
       <b>Register Here</b>
       <div class="formEntry">
-        <label for="username">Username.</label>
-        <input class:invalid type="text" id="username" bind:value={metadata.username} />
+        <label for="name">Name.</label>
+        <input class:invalid type="text" id="name" bind:value={metadata.name} />
       </div>
-      <p class="warning" class:invalid>{metadata.username === "" ? "Add a username" : "Username taken"}</p>
+      <p class="warning" class:invalid>{metadata.name === "" ? "Add a name" : "Name taken"}</p>
       <div class="formEntry">
         <label for="station">Station.</label>
         <input type="text" id="station" bind:value={metadata.station} disabled/>
@@ -514,7 +505,6 @@
     box-shadow: 0px 0px 5px black;
     border-radius: 50%;
     width: 72px;
-    height: 72px;
   }
 
   .actions {
@@ -565,7 +555,7 @@
     border: 2px solid red;
   }
 
-  input#username {
+  input#name {
     text-transform: lowercase;
   }
 

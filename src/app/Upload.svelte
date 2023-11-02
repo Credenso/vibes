@@ -100,7 +100,7 @@
           .then(async json => {
 
             // The json object that is returned by the /upload endpoint
-            // is an array of unsigned events for the user to sign
+            // is an array of unsigned events for the member to sign
             // and publish - we do that here. We don't actually do
             // anything with the IDs though.
             const ids = await Promise.all(json.map(async event => {

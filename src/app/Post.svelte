@@ -1,11 +1,11 @@
 <script>
   import { 
     postDictionary,
-    userDictionary,
+    memberDictionary,
     contentDictionary,
     activeSong,
     activePost,
-    activeUser,
+    activeMember,
     queue,
     modal
   } from '../lib/stores'
@@ -43,7 +43,7 @@
 
     // We only want to update this once
     if (post && postType === undefined) {
-      author = $userDictionary[post.pubkey]
+      author = $memberDictionary[post.pubkey]
       postType = post.content.type
       if (postType === "collection") {
         getTracks()
@@ -53,7 +53,7 @@
 
   activeSong.subscribe((song) => {
     if (postType === "single") {
-      if (song && song === $contentDictionary[post?.content?.audio].url) {
+      if (song && song === $contentDictionary[post?.content?.audio]?.url) {
         currentlyPlaying = true
       } else {
         currentlyPlaying = false
@@ -81,7 +81,6 @@
   }
 
   const play = () => {
-    console.log('clicked!', post.content)
     if (postType === "collection") {
       tracks.forEach((id,i) => {
         // If it's the first song, play it. Otherwise, queue it.

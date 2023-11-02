@@ -2,18 +2,60 @@
     import { flip } from 'svelte/animate'
     import { fade } from 'svelte/transition'
 
-	import { postDictionary, contentDictionary } from '../lib/stores'
+    import { 
+      postDictionary, 
+      contentDictionary,
+      memberDictionary,
+      relay,
+      keys
+    } from '../lib/stores'
+
+    import {
+      newProfileEvent,
+      signEvent,
+      publishEvent
+    } from '../lib/nostr'
+
 	import { preload } from '../lib/util'
     
 	import Post from '../app/Post.svelte'
 
 	export let title;
 	export let posts;
+    export let follow = undefined;
 	export let color = "red";
+
+    $: followed = profile?.vibes?.includes(follow)
+    let profile
+
+    memberDictionary.subscribe(members => {
+      const me = members[$keys.publicKey]
+      if (profile === undefined || profile.vibes !== me?.vibes) {
+        profile = me
+      }
+    })
+
+    const updateFollows = () => {
+      if (followed) {
+        profile.vibes = profile.vibes.filter(t => t === follow)
+      } else {
+        if (profile.vibes) {
+          profile.vibes.push(follow)
+        } else {
+          profile.vibes = [follow]
+        }
+      }
+      const ev = newProfileEvent(profile, $keys.publicKey)
+      const signed = signEvent(ev, $keys.privateKey)
+      publishEvent($relay, signed)
+    }
 </script>
 
 <div class="sectionHeader {color}">
-	<b>{title}</b>
+  <b>{title}</b>
+  {#if follow !== undefined}
+    <b class="follow" class:followed on:click={updateFollows}>+</b>
+  {/if}
 </div>
 <div class="sideScroll">
   {#if posts}
@@ -67,5 +109,17 @@
   .blue {
     background: #028a9b;
     transform: translateX(-10px);
+  }
+
+  .follow {
+    float: right;
+    margin-right: 1rem;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+  }
+
+  .followed {
+    transform: rotate(45deg);
   }
 </style>

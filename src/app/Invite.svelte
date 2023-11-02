@@ -1,6 +1,5 @@
 <script>
   import qrcode from 'qrcode-generator'
-  import { onMount } from 'svelte'
   import { 
     keys,
     members,
@@ -14,13 +13,13 @@
 
   const makeInvite = async () => {
     const name = Object.keys($members.names).find(key => $members.names[key] === $keys.publicKey)
-    const nonceRequest = await fetch(`http://solar.credenso.cafe/invite?username=${name}`)
+    const nonceRequest = await fetch(`http://solar.credenso.cafe/invite?name=${name}`)
     const nonce = await nonceRequest.text()
     const pubKey = $keys.publicKey
     const signedNonce = schnorr.sign(nonce, $keys.privateKey)
     const hexSig = b4a.toString(signedNonce, 'hex')
 
-    const inviteCode = await fetch(`http://solar.credenso.cafe/invite?username=${name}`, {
+    const inviteCode = await fetch(`http://solar.credenso.cafe/invite?name=${name}`, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain"
@@ -46,10 +45,6 @@
     qr.make()
     document.getElementById('qr').innerHTML = qr.createImgTag(10);
   }
-  //import { onMount } from 'svelte'
-  onMount(() => {
-    console.log('members', $members)
-  })
 </script>
 
 <div id="qr"></div>
@@ -69,8 +64,8 @@
   If they turn out to be a square then we'll probably
   boot them and maybe you for lowering the collective
   vibe of the system. We might even boot your whole
-  family tree if the vibes have been thrown off in a
-  major way. So... make sure everyone follows the rules.
+  family tree if the energy been thrown off in a major 
+  way. So... make sure everyone follows the rules.
 </p>
 <h1 class="title">The Rules</h1>
 <ol>

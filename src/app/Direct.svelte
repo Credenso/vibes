@@ -1,8 +1,8 @@
 <script>
   import { 
-    userDictionary,
+    memberDictionary,
     contentDictionary,
-    activeUser,
+    activeMember,
     chats,
     keys,
     relay
@@ -42,13 +42,14 @@
     }
   })
 
-  activeUser.subscribe(id => {
+  activeMember.subscribe(id => {
     chatLog = $chats[id]
+    scroll()
   })
 
   chats.subscribe(dict => {
-    if (chatLog && chatLog.length < dict[$activeUser].length) {
-      chatLog = dict[$activeUser]
+    if (chatLog && chatLog.length < dict[$activeMember].length) {
+      chatLog = dict[$activeMember]
       scroll()
     }
   })
@@ -57,7 +58,7 @@
     e.preventDefault()
     if (newMessage) {
       uploading = true
-      const commentEvent = await newMessageEvent(newMessage, $keys.publicKey, $keys.privateKey, $activeUser)
+      const commentEvent = await newMessageEvent(newMessage, $keys.publicKey, $keys.privateKey, $activeMember)
       const signed = signEvent(commentEvent, $keys.privateKey)
       newMessage = ""
       replyingTo = undefined
@@ -75,7 +76,7 @@
     {#each chatLog as message (message.id)}
       <section class="chatBox" class:me={message.pubkey === $keys.publicKey}>
         <div class="deets">
-          <b>{$userDictionary[message.pubkey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date(message.ts * 1000))}</p>
+          <b>{$memberDictionary[message.pubkey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date(message.ts * 1000))}</p>
         </div>
         <p class="comment">{message.text}</p>
       </section>
@@ -92,7 +93,7 @@
     </div>
   {:else}
     <div class="deets">
-      <b>{$userDictionary[$keys?.publicKey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date())}</p>
+      <b>{$memberDictionary[$keys?.publicKey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date())}</p>
     </div>
     <div class="deets">
       <textarea name="comment" bind:value="{newMessage}" />
@@ -146,7 +147,7 @@
   .chat {
     margin-top: 2em;
     margin-bottom: 4em;
-    height: 58vh;
+    height: 56vh;
     display: flex;
     flex-direction: column;
     overflow-y: scroll;

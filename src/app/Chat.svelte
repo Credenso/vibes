@@ -1,7 +1,10 @@
 <script>
     import { onMount } from 'svelte';
     import {
-        userDictionary,
+        memberDictionary,
+        contentDictionary,
+        activeMember,
+        modal,
         relay,
         keys,
         chats
@@ -15,6 +18,10 @@
         publishEvent
     } from '../lib/nostr'
 
+    import {
+        prettyDate
+    } from '../lib/util'
+
     import { nip04, nip44 } from 'nostr-tools'
 
     export let profile;
@@ -24,7 +31,7 @@
     let secrets = {}
     let activeChannel = undefined
     let messageDraft = undefined
-    let panel = "public"
+    let panel = "direct"
 
     const getSharedKey = (member) => {
         let existing = secrets[member] 
@@ -36,6 +43,16 @@
             return newKey
         }
     }
+
+    const avatarURL = (pubkey) => {
+        const member = $memberDictionary[pubkey]
+        if (member && member.avatar) {
+            return $contentDictionary[member.avatar].url
+        } else {
+            return "profile_photo.png"
+        }
+    }
+
 
     const processDM = async (event) => {
         let member
@@ -82,11 +99,11 @@
         switch(event.kind) {
             case 40:
                 // New Channel
-                const newChannel = { name: event.content.name, id: channelID }
+                const newChannel = { name: event.content.name, id: channelID, about: event.content.about }
                 channels = [...channels, newChannel]
 
                 // This is our "General" channel
-                if (newChannel.name === "Vibes") activeChannel = newChannel
+                if (newChannel.name === "General") activeChannel = newChannel
             case 41:
                 // Channel Update / New Channel
                 $chats[channelID][0] = event
@@ -140,7 +157,7 @@
             // Ideally, this should be done by the Solar server
             // Whenever a follow event occurs
             if (channels.length === 0) {
-                newChannel()
+                //newChannel()
             }
 
             // Keepalive
@@ -154,16 +171,22 @@
                 //Promise.all(events.map(async (event) => processEvent(event)))
             }, 1000 * 30)
 
-            chats.subscribe(userChats => {
-                people = Object.keys(userChats)
+            chats.subscribe(memberChats => {
+                people = Object.keys(memberChats).sort((p1, p2) => {
+                    const index1 = $chats[p1].length - 1
+                    const latest1 = $chats[p1][index1]
+                    const index2 = $chats[p2].length - 1
+                    const latest2 = $chats[p2][index2]
+                    return latest1.ts < latest2.ts
+                })
             })
         }
     })
 
     const newChannel = () => {
         const metadata = {
-            name: "Vibes",
-            about: "General Chat",
+            name: "General",
+            about: "This is a global chat for everyone on the page - be kind.",
             picture: undefined
         }
 
@@ -171,9 +194,7 @@
 
         if (!chan) {
             const event = newPubChannelEvent(metadata, $keys.publicKey)
-            console.log('event', event)
             const signed = signEvent(event, $keys.privateKey)
-            console.log('gonna publish', signed)
             publishEvent($relay, signed)
         }
     }
@@ -199,69 +220,88 @@
 
         messageDraft = undefined
     }
+
+    const openProfile = (pubkey) => {
+        $activeMember = pubkey
+        $modal = "member"
+    }
+
+    const openChat = (pubkey) => {
+        $activeMember = pubkey
+        $modal = "direct"
+    }
+
+    const latestMessage = (pubkey) => {
+        const index = $chats[pubkey].length - 1
+        const message = $chats[pubkey][index]
+        const who = (message.pubkey === $keys.publicKey) ? "You: " : "Them: "
+        return `${who}${message.text.substring(0,20)}...`
+    }
 </script>
 
+<div class="panelSelector">
+    <div on:click={() => panel = "direct"} class:underlined={panel === "direct"}>Direct Messages</div>
+    <div on:click={() => panel = "public"} class:underlined={panel === "public"}>Chatroom</div>
+</div>
+<hr>
 {#if panel === "public"}
-    <h2>Solar Chat</h2>
-    <p class="msg">
-        This is a global chat for everyone on the page - be kind.
-    </p>
-    <hr>
-    <div class="chat">
-        {#if activeChannel && $chats[activeChannel.id] }
-            <b>{activeChannel.name}</b>
+    {#if activeChannel && $chats[activeChannel.id] }
+        <h2>{activeChannel.name}</h2>
+        <p class="msg">
+            {activeChannel.about}
+        </p>
+        <hr>
+        <div class="chat">
             {#each $chats[activeChannel.id].filter(m => m.kind === 42) as message}
                 <div class="message">
-                    <div class="profile">
-                        {#if $userDictionary[message?.pubkey]?.picture}
-                            <img src="{$userDictionary[message.pubkey].picture}" alt="profile_photo"/>
+                    <div class="profile" on:click={openProfile(message.pubkey)}>
+                        {#if avatarURL(message?.pubkey)}
+                            <img src="{avatarURL(message.pubkey)}" alt="profile_photo"/>
                         {:else}
                             <img src="profile_photo.png" alt="profile_photo"/>
                         {/if}
-                        <b>{$userDictionary[message?.pubkey]?.name}:</b>
+                        <b>{$memberDictionary[message?.pubkey]?.display_name || 'NPC'}</b>
                     </div>
                     <p>{message.content}</p>
+                    <small class="timestamp">{prettyDate(new Date(message.created_at * 1000))}</small>
                 </div>
             {/each}
-        {/if}
-    </div>
+        </div>
+    {/if}
+    {#if activeChannel}
+        <form id="msgForm" class="msgForm" >
+            <select
+                value={activeChannel}
+                on:change={() => (messageDraft = undefined)}
+                >
+                {#each channels as channel}
+                    <option value={channel}>
+                    {channel.name}
+                    </option>
+                {/each}
+            </select>
+            <input on:focus={readyMessage} autocomplete="off" type="text" placeholder="Send message" class="input" id="inputBox" bind:value={messageDraft}/>
+        </form>
+    {/if}
 {:else}
     <div class="chat">
         {#each people as person}
-            <p>{$userDictionary[person]?.name}</p>
-            {#if $chats[person]}
-                {#each $chats[person] as message}
-                    <div class="message">
-                        <div class="profile">
-                            {#if $userDictionary[message?.pubkey]?.picture}
-                                <img src="{$userDictionary[message.pubkey].picture}" alt="profile_photo"/>
-                            {:else}
-                                <img src="profile_photo.png" alt="profile_photo"/>
-                            {/if}
-                            <b>{$userDictionary[message?.pubkey]?.name}:</b>
-                        </div>
-                        <p>{message.text}</p>
+            {#if $memberDictionary[person]}
+                <div class="DMBlock" on:click={openChat(person)}>
+                    <div class="profile">
+                        {#if avatarURL(person)}
+                            <img src="{avatarURL(person)}" alt="profile_photo"/>
+                        {:else}
+                            <img src="profile_photo.png" alt="profile_photo"/>
+                        {/if}
+                        <b>{$memberDictionary[person]?.display_name || 'NPC'}:</b>
                     </div>
-                {/each}
+                    <p>{latestMessage(person)}</p>
+                    <hr/>
+                </div>
             {/if}
-            <hr/>
         {/each}
     </div>
-{/if}
-{#if activeChannel}
-    <form id="msgForm" class="msgForm" >
-        <select
-            value={activeChannel}
-            on:change={() => (messageDraft = undefined)}
-            >
-            {#each channels as channel}
-                <option value={channel}>
-                {channel.name}
-                </option>
-            {/each}
-        </select>
-        <input on:focus={readyMessage} autocomplete="off" type="text" placeholder="Send message" class="input" id="inputBox" bind:value={messageDraft}/>
-    </form>
 {/if}
 
 <style>
@@ -299,6 +339,14 @@
         width: 100%;
     }
 
+    .timestamp {
+        position: static;
+        font-size: 0.7em;
+        width: fit-content;
+        top: 0;
+        right: 0;
+    }
+
     .profile {
         display: flex;
         flex-direction: row;
@@ -308,8 +356,18 @@
         width: fit-content;
     }
 
+    .DMBlock {
+        display: flex;
+        align-items: center;
+        margin: 0.5em;
+        margin-bottom: 0;
+        background-color: #FFFFFF;
+        border-radius: 0.25em;
+    }
+
     .profile img {
         height: 1.5em;
+        border-radius: 50%;
         margin: 0.5em;
     }
 
@@ -322,6 +380,8 @@
 
     .msgForm select {
         flex-grow: 0;
+        border-radius: 0.25em;
+        padding: 0.25em;
     }
 
     .msgForm input {
@@ -330,6 +390,18 @@
         padding: 0.5em;
         border: 2px solid #636B71;
         border-radius: 1em;
+    }
+
+    .panelSelector {
+        display: flex;
+        font-size: 1.2em;
+        justify-content: center;
+        gap: 2em;
+    }
+
+    .underlined {
+        font-weight: bold;
+        text-decoration: underline;
     }
 
     .message:nth-child(3n) {

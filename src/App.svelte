@@ -17,14 +17,14 @@
   import Direct from './app/Direct.svelte'
   import Invite from './app/Invite.svelte'
 
-  import Hyperdrive from 'hyperdrive'
+  //import Hyperdrive from 'hyperdrive'
 
   // Utilities
   import { onMount, onDestroy } from 'svelte'
   import { 
     initRelay,
     getPosts,
-    getUsers,
+    getMembers,
     getEvents,
     unsecuredLocalKeys,
     signEvent,
@@ -35,14 +35,14 @@
 
   import { nip42 } from 'nostr-tools'
 
-  import { makeSwarm, makeRAMStore, makeBrowserStore, makeDrive } from './lib/hyper'
+  //import { makeSwarm, makeRAMStore, makeBrowserStore, makeDrive } from './lib/hyper'
   
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
 
   import { 
     postDictionary,
-    userDictionary,
+    memberDictionary,
     contentDictionary,
     commentsDictionary,
     vibesDictionary,
@@ -50,8 +50,8 @@
     activePost,
     keys,
     modal,
-    activeUser,
-    userClass,
+    activeMember,
+    memberClass,
     members,
     hyper,
     contacts,
@@ -68,17 +68,18 @@
   let activeWidget = undefined
   let events = []
 
-  // Hyperdrive stuff
-  let store
-  let log
-  let swarm
-  let drive
+  //// Hyperdrive stuff
+  //let store
+  //let log
+  //let swarm
+  //let drive
 
   let searchOpen = false
-  let tags = []
 
   let recentPosts = []
   let followedPosts = []
+  let yrVibes= []
+  let tags = []
 
   let audioPlayer = new Audio()
   audioPlayer.crossOrigin = true
@@ -137,19 +138,20 @@
   $keys = unsecuredLocalKeys()
 
   activePost.subscribe((post) => {
-    console.log('active post is...', post)
+    if (post) {
+      console.log('active post is...', post)
+    }
   })
 
   members.subscribe(dict => {
     if (dict.admins) {
       if (dict.admins.includes($keys.publicKey)) {
-        $userClass = "admin"
+        $memberClass = "admin"
       } else if (Object.values(dict.names).includes($keys.publicKey)) {
-        $userClass = "member"
+        $memberClass = "member"
       } else {
-        $userClass = "npc"
+        $memberClass = "npc"
       }
-      console.log('userclass is ', $userClass)
     }
   })
 
@@ -196,10 +198,10 @@
         }
       }
     } else if (event.kind === 0) {
-      // User Profile
+      // Member Profile
       let content = JSON.parse(event.content);
-      if (profile.username === undefined) {
-        profile.username = ""
+      if (profile.display_name === undefined) {
+        profile.display_name = profile.name
       }
 
       // We default to our server if one isn't
@@ -209,9 +211,9 @@
         profile.station = "solar.credenso.cafe"
       }
 
-      $userDictionary[event.pubkey] = content;
+      $memberDictionary[event.pubkey] = content;
 
-      // If we find a user that matches our public key,
+      // If we find a member that matches our public key,
       // That's our profile! Whichever one was published
       // most recently ends up being the one we use.
       if (event.pubkey === $keys.publicKey) {
@@ -219,6 +221,19 @@
       }
 
       return {...content, "pubkey": event.pubkey };
+    } else if (event.kind === 5) {
+      // Delete
+      const ids = event.tags.filter(t => t[0] === "e").map(t => t[1])
+      ids.forEach(id => {
+        delete $postDictionary[id]
+        delete $contentDictionary[id]
+      })
+      recentPosts = recentPosts.filter(p => !ids.includes(p.id))
+      if (followedPosts) {
+        updateFollows()
+        updateVibes()
+      }
+
     } else if (event.kind === 7) {
       // Reaction
       const post_id = event.tags.find(t => t[0] === "e")[1]
@@ -245,6 +260,7 @@
       } else {
         $vibesDictionary[post_id] = { [reaction]: [event.pubkey] }
       }
+      //console.log('vibes', $vibesDictionary)
     } else if (event.kind === 1063) {
       // Content (file)
       event.url = `${staticEndpoint}${event.tags.find(t => t[0] === "url")[1]}`
@@ -265,6 +281,22 @@
       recentPosts = [event, ...recentPosts.filter(p => p.id !== event.id).slice(0,10)]
     }
   }
+
+  const updateFollows = () => {
+    const followedIDs = $contacts.map(c => c[1])
+    followedPosts = Object.values($postDictionary).filter(post => followedIDs.includes(post.pubkey))
+  }
+
+  const updateVibes = () => {
+    // Complexity O(mn)
+    if (profile.vibes) {
+      const vibeyKeys = Object.keys($postDictionary)
+        .filter(post_id => Object.keys($vibesDictionary[post_id] || {})
+          .some(tag => profile.vibes.includes(tag)))
+      yrVibes = vibeyKeys.map(key => $postDictionary[key]).sort(() => Math.random() - 0.5)
+    }
+  }
+
 
   // The first thing we do in this app is to load all nostr
   // events and associated data into memory so they can be
@@ -288,7 +320,7 @@
       }, 500)
     })
 
-    events = await getEvents($relay, [{ kinds: [0, 1, 7, 1063, 1618] }]);
+    events = await getEvents($relay, [{ kinds: [0, 1, 5, 7, 1063, 1618] }]);
 
     await Promise.all(events.map(async (event) => processEvent(event)))
 
@@ -304,27 +336,26 @@
       }
     })
 
-    const followedIDs = $contacts.map(c => c[1])
-    followedPosts = Object.values($postDictionary).filter(post => followedIDs.includes(post.pubkey))
 
+    updateFollows()
+    updateVibes()
 
-    // Hypercore bootstrap (Keeping this to avoid further breakage)
-    swarm = await makeSwarm()
-    store = await makeRAMStore()
-    //store = await makeBrowserStore('vibes')
-    drive = await makeDrive(store.namespace('drive'), { name: 'drive' })
-    log = store.get({ name: 'log' })
+    //// Hypercore bootstrap
+    //swarm = await makeSwarm()
+    //store = await makeRAMStore()
+    ////store = await makeBrowserStore('vibes')
+    //drive = await makeDrive(store.namespace('drive'), { name: 'drive' })
+    //log = store.get({ name: 'log' })
 
-    await drive.ready()
-    await log.ready()
+    //await drive.ready()
+    //await log.ready()
 
-    $hyper = { log, swarm, store, drive }
-
+    //$hyper = { log, swarm, store, drive }
 
     // TODO: Reintegrate Hypercore
     //$contacts.forEach(async contact => {
     //  console.log('contact key', contact)
-    //  const profile = $userDictionary[contact[1]]
+    //  const profile = $memberDictionary[contact[1]]
     //  console.log('profile', profile)
     //  const hyper = store.namespace(contact)
     //  const log = hyper.get({ key: profile.log })
@@ -402,11 +433,10 @@
     // Here we get the list of currently registered members
     const membersJSON = await fetch("http://solar.credenso.cafe/.well-known/nostr.json")
     $members = await membersJSON.json()
-    console.log('members', $members)
 
     let sub = $relay.sub([
       {
-        kinds: [0,1, 7, 1063, 1618],
+        kinds: [0, 1, 5, 7, 1063, 1618],
         since: Math.floor(Date.now() / 1000)
       }
     ])
@@ -414,6 +444,12 @@
     sub.on('event', (event) => {
       console.log('got event, processing')
       processEvent(event)
+      if (event.kind === 0) {
+        updateVibes()
+      }
+      if (event.kind === 3) {
+        updateFollows()
+      }
     })
 
     // Make a query every 30 seconds to keep the connection alive
@@ -430,7 +466,7 @@
       document.querySelector('section.is-preload').classList.remove('is-preload');
 
       if (invite.code) {
-        $activeUser = $keys.publicKey
+        $activeMember = $keys.publicKey
         $modal = "member"
       }
       // A higher number hides the time it takes to load API data
@@ -448,11 +484,11 @@
 
 <Sidebar bind:open={openMenu}>
   <button on:click={() => navTo("main")}>🏠 Home</button>
-  <button on:click={() => navTo("chat")}>💬 Chat</button>
-  {#if $userClass !== 'npc'}
+  {#if $memberClass !== 'npc'}
+    <button on:click={() => navTo("chat")}>💬 Chat</button>
     <button on:click={() => navTo("upload")}>📁 Upload</button>
   {/if}
-  {#if $userClass === 'admin'}
+  {#if $memberClass === 'admin'}
     <button on:click={() => navTo("invite")}>✉️ Invite</button>
   {/if}
 </Sidebar>
@@ -495,17 +531,25 @@
                 color="orange"
                 bind:posts={followedPosts}
                 />
+
+                {#if yrVibes.length > 0}
+                  <Sidescroll 
+                    title="Yr vibe."
+                    color="blue"
+                    bind:posts={yrVibes}
+                    />
+                {/if}
           </div>
           <div class="hidden" class:visible={page === "upload"}>
             <Upload bind:page bind:keys={$keys} />
           </div>
           <div class="hidden" class:visible={page === "search"}>
-            <Results bind:search bind:tags />
+            <Results bind:tags bind:search />
           </div>
           <div class="hidden" class:visible={page === "chat"}>
             <Chat bind:profile />
           </div>
-          {#if $userClass === "admin"}
+          {#if $memberClass === "admin"}
             <div class="hidden" class:visible={page === "invite"}>
               <Invite />
             </div>

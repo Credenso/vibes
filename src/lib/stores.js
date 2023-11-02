@@ -6,7 +6,7 @@ import { writable } from 'svelte/store';
 // as props
 
 export const postDictionary = writable({});
-export const userDictionary = writable({});
+export const memberDictionary = writable({});
 export const commentsDictionary = writable({});
 export const contentDictionary = writable({});
 export const repliesDictionary = writable({});
@@ -14,7 +14,7 @@ export const vibesDictionary = writable({});
 
 export const activeSong = writable(undefined);
 export const activePost = writable(undefined);
-export const activeUser = writable(undefined);
+export const activeMember = writable(undefined);
 
 export const queue = writable([]);
 export const members = writable({});
@@ -22,6 +22,6 @@ export const contacts = writable([]);
 export const chats = writable({});
 export const relay = writable(undefined);
 export const modal = writable(undefined);
-export const userClass = writable("npc");
+export const memberClass = writable("npc");
 export const keys = writable({});
 export const hyper = writable({});

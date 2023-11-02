@@ -39,15 +39,17 @@
 
 - [x] Queue songs / Play Now - S
 
-- [ ] Profile Page - M
+- [x] Profile Page - M
     - [x] Edit Profile - M
     - [x] Profile Pictures - S
-    - [ ] NIP-24 compliance - S
+    - [x] NIP-24 compliance - S
 
-- [x] User Registration - M
+- [x] Member Registration - M
     - [x] Update Profile screen
     - [x] NIP-05 compatibility
-    - [x] Username validation
+    - [x] Name validation
+
+- [x] Delete Posts - M
 
 - [ ] Following artists
     - [x] Create list of follows
@@ -55,18 +57,17 @@
 
 - [x] Direct Messages - L
 
-- [ ] Delete Posts - M
-- [ ] Reposts - M
-
 - [ ] upgrade upload screen - M
-    - [ ] resize uploaded images - S
+    - [ ] resize uploaded images - M
     - [x] upload preview - S 
     - [ ] post preview - S 
     - [ ] overhaul UI - S
 
+- [ ] Polish Profile Screen - M
+
 - [ ] Other categories - M
     - [ ] Most popular (unique votes in last 30 days) - S
-    - [ ] artists you follow - S
+    - [x] artists you follow - S
 
 # Hypercore Integration
 - [x] Pull events from Hypercore
@@ -76,7 +77,7 @@
 
 - [ ] Download followed Hypercores
 
-- [x] User classes (Admin, creator, NPC)
+- [x] Member classes (Admin, creator, NPC)
     - [x] Registration 
     - [x] permissions for
         - [x] commenting
@@ -103,6 +104,7 @@
 
 - [ ] videos (can this be v1.1?)
 - [ ] Currently listening to (NIP-38)
+- [ ] Settings Page
 
 # Next Steps - Decentralization
 - [ ] manually configure relay and ipfs address

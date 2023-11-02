@@ -90,7 +90,7 @@
 
 <hr>
 <h1 class="header">Vibes</h1>
-{#if vibesList}
+{#if vibesList && event}
   <section>
     {#each vibesList as vibe, i (vibe)}
       <button 

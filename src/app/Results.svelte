@@ -9,6 +9,8 @@
   export let tags
 
   let searchResults = []
+  let popularTags = []
+  let popularity = {}
 
   const searchScore = (tag, query) => {
     let totalScore = alignment(tag, query)
@@ -37,17 +39,45 @@
     const sortedResults = Object.keys(scores).sort((k1, k2) => scores[k1] < scores[k2])
     return sortedResults.map(id => $postDictionary[id])
   }
+
+  const mostPopular = () => {
+    let pop = {}
+    Object.values($vibesDictionary)
+      .forEach(post => {
+        Object.keys(post).forEach(vibe => { 
+          pop[vibe] = (pop[vibe] || 0) + post[vibe].length 
+        })
+      })
+    console.log('pop', pop)
+    popularity = pop
+    popularTags = Object.keys(pop).sort((k1,k2) => pop[k1] < pop[k2])
+  }
 </script>
 
 {#each relevantTags as tag, i}
   <Sidescroll 
     title="~{tag} vibes"
+    follow="{tag}"
     color="{["red","orange","blue"][i%3]}"
     bind:posts={results[tag]}
     />
 {/each}
 {#if relevantTags.length === 0}
-  <p>No results!</p>
-  <p>Try looking for...</p>
+  <p class="title">No results for {search}!</p>
+  <p>Try one of these...</p>
+  {#each popularTags as tag}
+    <p class="vibe" on:click={() => search = tag} style={`font-size: ${Math.log(1 + popularity[tag])}em`}>~{tag}</p>
+  {/each}
+  <button on:click={mostPopular}>What's cool?</button>
 {/if}
 
+<style>
+  .title {
+    font-size: 1.5em;
+  }
+
+  .vibe {
+    cursor: pointer;
+    font-weight: bold;
+  }
+</style>

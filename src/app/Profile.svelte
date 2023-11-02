@@ -4,8 +4,8 @@
 
   import { 
     contentDictionary,
-    userDictionary,
-    activeUser, 
+    memberDictionary,
+    activeMember, 
     hyper,
     keys, 
     modal
@@ -45,12 +45,12 @@
   }
 
   const openProfile = () => {
-    $activeUser = $keys.publicKey
+    $activeMember = $keys.publicKey
     $modal = "member"
   }
 
-  userDictionary.subscribe(users => {
-    profile = users[$keys?.publicKey]
+  memberDictionary.subscribe(members => {
+    profile = members[$keys?.publicKey]
     if (profile) {
       updateAvatar(profile)
     }

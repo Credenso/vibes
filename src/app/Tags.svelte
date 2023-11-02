@@ -39,12 +39,12 @@
 </script> 
 
 <h1>Tags</h1>
-<div class="tags-input"> 
+<div class="tags-input" on:click={() => document.getElementById('input-tag').focus()}> 
   <ul id="tagList">
     {#each tags as tag (tag)}
       <li>{tag}<button on:click={() => remove(tag)} class="delete-button">x</button></li>
     {/each}
-    <input type="text" id="input-tag" placeholder="What's the vibe" /> 
+    <input type="text" id="input-tag" placeholder="What's the vibe (max. 5 tags)" /> 
   </ul> 
 </div> 
   

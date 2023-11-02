@@ -6,20 +6,25 @@
     initRelay,
     RELAY_URL,
     newProfileEvent,
+    newDeleteEvent,
+    signEvent,
     publishEvent
   } from '../lib/nostr'
   import { 
     postDictionary,
-    userDictionary,
+    memberDictionary,
     contentDictionary,
     activePost,
     activeSong,
-    activeUser,
+    activeMember,
+    keys,
+    relay,
     queue,
     modal
   } from '../lib/stores'
 
   let saving = false
+  let deleting = false
   let event
   let author
   let postType
@@ -41,16 +46,34 @@
   }
 
   const openModal = () => {
-      author = $userDictionary[event.pubkey]
+      author = $memberDictionary[event.pubkey]
       postType = event.content.type
       if (postType === "collection") {
         getTracks()
       }
   }
 
+  const deletePost = () => {
+    let IDs = []
+    if (Array.isArray(event.content.audio)) {
+      event.content.audio.forEach(id => IDs.push(id))
+    } else {
+      IDs.push(event.content.audio)
+    }
+    IDs.push(event.content.image)
+    IDs.push(event.id)
+
+    const e = newDeleteEvent($keys.publicKey, IDs, "deleted by user")
+    const signed = signEvent(e, $keys.privateKey)
+    closeModal()
+    publishEvent($relay, signed)
+  }
+
   const closeModal = () => {
+    $modal = undefined
     $activePost = undefined
     postType = undefined
+    deleting = false
     tab = "about"
   }
 
@@ -63,7 +86,7 @@
     activePost.subscribe((id) => {
       if (id) {
         event = $postDictionary[id]
-        author = $userDictionary[event.pubkey]
+        author = $memberDictionary[event.pubkey]
         openModal()
       }
     })
@@ -109,9 +132,9 @@
     }
   }
 
-  const visit = (user_id) => {
+  const visit = (member_id) => {
     $modal = undefined
-    $activeUser = user_id
+    $activeMember = member_id
     window.setTimeout(() => $modal = "member", 200)
   }
 
@@ -119,6 +142,17 @@
 
 <section>
   {#if event}
+    {#if event.pubkey === $keys.publicKey}
+      <div class="delete">
+        {#if deleting}
+          <div on:click={deletePost}>✔️</div>
+          <p>Are you sure?</p>
+          <div on:click={() => deleting = false}>✖️</div>
+        {:else}
+          <div on:click={() => deleting = true}>✖️</div>
+        {/if}
+      </div>
+    {/if}
     <p class="header">{event.content.name}</p>
     <a class="subtitle" on:click={() => visit(event.pubkey)}><img class="micro" src="{$contentDictionary[author?.avatar]?.url || "profile_photo.png"}"/> {author?.name} - posted {new Date(event.created_at * 1000).toDateString()}</a> 
     <img src="{$contentDictionary[event.content.image].url}" alt="img"/>
@@ -176,6 +210,17 @@
     border: 1px solid;
     border-radius: 0.25em;
     font-size: 0.9em;
+  }
+
+  .delete {
+    position: absolute;
+    margin: 0.5em;
+    margin-right: 0.75em;
+    cursor: pointer;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: 0.5em;
   }
 
   button:focus, a:focus {

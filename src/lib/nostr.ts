@@ -135,6 +135,7 @@ export enum Kind {
     "album" = 2,
     "contacts" = 3, //??
     "message" = 4, //??
+    "delete" = 5,
     "reaction" = 7,
     "channelCreate" = 40,
     "channelMetadata" = 41,
@@ -217,6 +218,25 @@ export const newContactsEvent = (
     );
 };
 
+export const newDeleteEvent = (
+    public_key: string,
+    deleteList: string[],
+    reason = undefined
+) => {
+    let tags = []
+    deleteList.forEach(target => {
+        const tag = ["e", target]
+        tags.push(tag)
+    })
+
+    return genericUnsignedEvent(
+        Kind.delete, 
+        reason || "", 
+        public_key, 
+        tags
+    );
+};
+
 export const newCommentEvent = (
     comment: string,
     post_id: string,
@@ -228,7 +248,7 @@ export const newCommentEvent = (
     // We always use this tag in comments
     let pubkeys = [Tag.pubkey, post_pubkey]
     
-    // Add the user being replied to if they exist
+    // Add the person being replied to if they exist
     if (replying_to?.pubkey) pubkeys.push(replying_to.pubkey)
 
     let tags = [
@@ -375,7 +395,7 @@ export const getPosts = async (relay: Relay, author = "", limit = 0, delta = 0) 
     return posts;
 };
 
-export const getUsers = async (relay: Relay) => {
+export const getMembers = async (relay: Relay) => {
     const posts = await getEvents(relay, [{ kinds: [Kind.profile] }]);
     return posts;
 };

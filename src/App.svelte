@@ -262,6 +262,7 @@
       }
       //console.log('vibes', $vibesDictionary)
     } else if (event.kind === 1063) {
+      console.log('loading content', event)
       // Content (file)
       const urltag = event.tags.find(t => t[0] === "url")[1]
       if (urltag.startsWith('http')) {
@@ -282,9 +283,6 @@
       }
 
       $postDictionary[event.id] = event
-
-      // The filter keeps us from rendering duplicates
-      //recentPosts = [event, ...recentPosts.filter(p => p.id !== event.id).slice(0,10)]
     }
   }
 
@@ -462,6 +460,9 @@
       }
       if (event.kind === 3) {
         updateFollows()
+      }
+      if (event.kind === 1618) {
+        updateRecent()
       }
     })
 

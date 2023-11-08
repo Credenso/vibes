@@ -29,7 +29,7 @@
   const getTracks = () => {
     tracks = []
     post.content.audio.forEach((id,i) => {
-      // If there's a matching post for the ID, pull its audio file
+      // If there's a matching post for the ID, pull its audio id
       if ($postDictionary[id]) {
         tracks.push($postDictionary[id]?.content.audio)
       } else {
@@ -81,6 +81,7 @@
   }
 
   const play = () => {
+      console.log('post', post)
     if (postType === "collection") {
       tracks.forEach((id,i) => {
         // If it's the first song, play it. Otherwise, queue it.

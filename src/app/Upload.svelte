@@ -1,6 +1,5 @@
 <script>
   import { onMount } from 'svelte'
-  import { encode } from 'blurhash'
   import { 
     postDictionary,
     memberDictionary,
@@ -32,7 +31,6 @@
   let uploading = false
   let preview = false
   let tags = []
-  let blurhash
   let hashableContext
   let uploadedImage
   let hasImage = false
@@ -41,19 +39,6 @@
   let section = 1
   let tab = "about"
   $: me = $memberDictionary[keys.publicKey]
-
-  // I want to blurhash the canvas once it has already appeared!
-  //$: makeBlurhash(hashableContext)
-
-  // Doesn't get used at the moment
-  const makeBlurhash = async (ctx) => {
-    console.log('making blurhash')
-    if (ctx) {
-      const imgData = ctx.getImageData(0,0,ctx.canvas.width, ctx.canvas.height)
-      blurhash = encode(imgData.data, imgData.width, imgData.height, 4, 4)
-      console.log('blurhash', blurhash)
-    }
-  }
 
   const handleUpload = async (e) => {
     //uploading = true
@@ -141,40 +126,53 @@
         .then(response => response.json()
           .then(async json => {
 
+
             // The json object that is returned by the /upload endpoint
             // is an array of unsigned events for the member to sign
             // and publish - we do that here. We don't actually do
             // anything with the IDs though.
-            const ids = await Promise.all(json.map(async event => {
-              const mimetype = event.tags.find(tag => tag[0] === "m")[1]
-              const e = signEvent(event, keys.privateKey)
+            const signedEvents = json.map(event => signEvent(event, keys.privateKey))
+            const imageEvent = signedEvents.find(e => (e.tags.find(t => t[0] === "m")[1]).startsWith('image'))
+            const songEvents = signedEvents.filter(e => (e.tags.find(t => t[0] === "m")[1]).startsWith('audio'))
+            content.image = imageEvent.id
 
-              console.log('event is', e)
-              publish(e)
+            // Time to make our post!
+            let eventsToPublish = [...signedEvents]
 
-              // If we find an event with an image mimetype, that
-              // is the art we're using for the post
-              if (mimetype.startsWith('image')) {
-                content.image = e.id
-              }
 
-              // For each file uploaded, find its place in the songIds
-              // list and replace it with its new ID
-              const formIndex = songIds.indexOf(event.content)
-              if (formIndex !== -1) {
-                songIds[formIndex] = e.id
-              }
+            //const ids = await Promise.all(json.map(async event => {
+            //  const mimetype = event.tags.find(tag => tag[0] === "m")[1]
+            //  const e = signEvent(event, keys.privateKey)
 
-              return e.id
-            }))
+            //  console.log('event is', e)
+            //  publish(e)
+
+            //  // If we find an event with an image mimetype, that
+            //  // is the art we're using for the post
+            //  if (mimetype.startsWith('image')) {
+            //    content.image = e.id
+            //  }
+
+            //  // For each file uploaded, find its place in the songIds
+            //  // list and replace it with its new ID
+            //  const formIndex = songIds.indexOf(event.content)
+            //  if (formIndex !== -1) {
+            //    songIds[formIndex] = e.id
+            //  }
+
+            //  return e.id
+            //}))
 
             // Set the audio entry to the array of songIds we created
-            content.audio = songIds
+            //content.audio = songIds
+            content.audio = songEvents.map(e => e.id)
 
             if (content.audio.length > 1) {
               // If there's multiple audio files, add the names list
               content.names = songs.map(s => s.songName) //songNames
-            } else {
+            }
+
+            if (content.audio.length === 1) {
               // If there's only one audio file, drop the array
               content.audio = content.audio[0]
             }
@@ -183,9 +181,6 @@
             content.name = formTwo.get('name');
             content.description = formTwo.get('desc');
             content.lyrics = formTwo.getAll('formLyrics');
-
-            // Time to make our post!
-            let eventsToPublish = []
 
             // First, we make the post itself
             const postEvent = newPostEvent(JSON.stringify(content), keys.publicKey, keys.privateKey)
@@ -319,7 +314,6 @@
         }
       }
       //console.log('songs', songs)
-      //makeBlurhash(hashableContext)
       //console.log('next section')
 
       if (true || section === 1 && hasImage) {
@@ -479,8 +473,6 @@
           {/each}
         </table>
       </div>
-
-      <input type="hidden" name="blurhash" value={blurhash} />
 
       <br/>
       {#if uploading}

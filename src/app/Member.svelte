@@ -5,6 +5,7 @@
     RELAY_URL,
     genKeys,
     newProfileEvent,
+    newBlockListEvent,
     newContactsEvent,
     signEvent,
     publishEvent
@@ -18,6 +19,7 @@
     keys, 
     modal, 
     members,
+    blocks,
     contacts,
     chats,
     relay 
@@ -48,6 +50,7 @@
   $: invalid = ($members.names && $members.names[metadata?.name] !== undefined)
   let posts = []
   let following = undefined
+  let blocked = undefined
   let saving
 
   let files = []
@@ -98,6 +101,11 @@
   contacts.subscribe(list => {
     following = list?.find(contact => { return profile && contact[1] === profile })
   })
+
+  blocks.subscribe(list => {
+    blocked = list.public?.find(contact => { return profile && contact[1] === profile })
+  })
+
   // Probably shouldn't be for active Member?
   activeMember.subscribe(async id => {
     profile = id
@@ -138,6 +146,31 @@
 
   const handleUnfollow = (e) => {
     console.log('I no longer want to hear from this person')
+    $contacts = $contacts.filter(contact => { return contact[1] && contact[1] !== profile })
+    const ev = newContactsEvent($keys.publicKey, $contacts)
+    const signed = signEvent(ev, $keys.privateKey)
+    publish(signed)
+  }
+
+  const handleBlock = async (e) => {
+    console.log('Stop showing me content from this person')
+    let pubBlocks
+
+    if ($blocks.public < 1) {
+      pubBlocks = [profile] 
+    } else {
+      pubBlocks = [...$blocks.public, profile]
+    }
+
+    const ev = await newBlockListEvent(pubBlocks, [], $keys.publicKey)
+    console.log('ev', ev)
+    const signed = signEvent(ev, $keys.privateKey)
+    console.log('signed', signed)
+    publish(signed)
+  }
+
+  const handleUnblock = (e) => {
+    console.log('Unblock this person')
     $contacts = $contacts.filter(contact => { return contact[1] && contact[1] !== profile })
     const ev = newContactsEvent($keys.publicKey, $contacts)
     const signed = signEvent(ev, $keys.privateKey)
@@ -406,6 +439,11 @@
           <button on:click={handleUnfollow}>Unfollow</button>
         {:else}
           <button on:click={handleFollow}>Follow</button>
+        {/if}
+        {#if blocked}
+          <button on:click={handleUnblock}>Unblock</button>
+        {:else}
+          <button on:click={handleBlock}>Block</button>
         {/if}
       </div>
     {:else if invite.code && metadata.nip05 === undefined}

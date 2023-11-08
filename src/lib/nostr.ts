@@ -124,17 +124,14 @@ export const signEvent = (event: UnsignedEvent, private_key: string) => {
 }
 
 // TODO: Refactor this to accord to NIPs
-// Reactions are Kind 7 (NIP-25)
-// Profile is extended by NIP-39
 // Auth is important! NIP-42
-// Kind 30078 for Vibes data (NIP-78)
 // Kind 1063 for linked content/files (NIP-94)
 export enum Kind {
     "profile" = 0,
     "post" = 1,
-    "album" = 2,
-    "contacts" = 3, //??
-    "message" = 4, //??
+    //"album" = 2,
+    "contacts" = 3,
+    "message" = 4,
     "delete" = 5,
     "reaction" = 7,
     "channelCreate" = 40,
@@ -143,6 +140,7 @@ export enum Kind {
     "channelHide" = 43,
     "channelMute" = 44,
     "vibe" = 1618,
+    "blockList" = 10000
 }
 
 // TODO: Refactor this to accord to NIPs
@@ -172,6 +170,30 @@ export const newMessageEvent = async (
     return genericUnsignedEvent(Kind.message, ciphertext, public_key, tags);
 };
 
+export const newBlockListEvent = async (
+    publically_blocked_keys: string[],
+    privately_blocked_keys: string[],
+    public_key: string,
+    secret_key = undefined
+) => {
+    let p_tags = []
+    publically_blocked_keys.forEach(k => {
+        p_tags.push(['p',k])
+    })
+
+    console.log('pubblock', p_tags)
+
+    let cipher = ""
+    if (secret_key) {
+        let s_tags = []
+        privately_blocked_keys.forEach(k => {
+            s_tags.push(['p',k])
+        })
+        cipher = await nip04.encrypt(secret_key, public_key, JSON.stringify(s_tags))
+    }
+    return genericUnsignedEvent(Kind.blockList, cipher, public_key, p_tags);
+};
+
 export const newPostEvent = (
     ipfs_link: string,
     public_key: string,
@@ -180,13 +202,13 @@ export const newPostEvent = (
     return genericEvent(Kind.vibe, ipfs_link, public_key, private_key, []);
 };
 
-export const newCollectionEvent = (
-    ipfs_link: string,
-    public_key: string,
-    private_key: string
-) => {
-    return genericEvent(Kind.album, ipfs_link, public_key, private_key, []);
-};
+//export const newCollectionEvent = (
+//    ipfs_link: string,
+//    public_key: string,
+//    private_key: string
+//) => {
+//    return genericEvent(Kind.album, ipfs_link, public_key, private_key, []);
+//};
 
 export const newReactionEvent = (
     reaction: string,

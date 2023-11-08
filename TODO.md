@@ -51,9 +51,9 @@
 
 - [x] Delete Posts - M
 
-- [ ] Following artists
+- [x] Following artists
     - [x] Create list of follows
-    - [ ] Create list of blocks
+    - [x] Create list of blocks
 
 - [x] Direct Messages - L
 
@@ -65,16 +65,17 @@
 
 - [x] Polish Profile Screen - M
 
-- [ ] Other categories - M
-    - [ ] Most popular (unique votes in last 30 days) - S
+- [x] Other categories - M
+    - [x] Most popular (unique votes in last 30 days) - S
     - [x] artists you follow - S
 
-- [ ] Delete connected vibes - S
+- [x] Delete connected vibes - S
 
 # Next Steps - Polish
 - [ ] Better Image Loading - L
     - [ ] Blurhash images - M
 
+- [ ] Update permissions on registration - S
 - [x] figure out why subscription is sketchy
 - [x] investigate howler.js lib / siriwave
 - [ ] try again with the wave-generator

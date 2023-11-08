@@ -32,7 +32,7 @@
   import { getSong } from './lib/ipfs'
   import { within30Days } from './lib/util'
 
-  import { nip42 } from 'nostr-tools'
+  import { nip04, nip42 } from 'nostr-tools'
 
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
@@ -45,6 +45,7 @@
     vibesDictionary,
     repliesDictionary,
     activePost,
+    blocks,
     keys,
     modal,
     activeMember,
@@ -69,7 +70,7 @@
   let recentPosts = []
   let topPosts = []
   let followedPosts = []
-  let yrVibes= []
+  let yrVibes = []
   let tags = []
 
   let audioPlayer = new Audio()
@@ -120,6 +121,10 @@
   // work with. 
   // TODO: Refactor to make more modular
   const processEvent = async (event) => {
+    if ($blocks.list.includes(event.pubkey) && event.kind !== 0) {
+      return
+    }
+
     if (event.kind === 1) {
       // Comment / Reply
 
@@ -311,6 +316,33 @@
       }, 500)
     })
 
+    // Before getting the events, we get the blockList to avoid processing any posts
+    // from people we don't want to hear from (except for basic profile data)
+
+
+    // TODO: get other data for the given user
+    const blockList = await getEvents($relay, [{ kinds: [10000], author: [$keys.publicKey], limit: 1 }]);
+    console.log('blockList', blockList)
+    $blocks.public = []
+    blockList[0].tags.forEach(t => {
+      if (t[0] === "p") {
+        $blocks.public.push(t[1])
+      }
+    })
+
+    $blocks.private = []
+    if (blockList[0].content !== "") {
+      const text = await nip04.decrypt($keys.privateKey, member, blockList[0].content)
+      const list = JSON.parse(text)
+      list.forEach(t => {
+        if (t[0] === "p") {
+          $blocks.private.push(t[1])
+        }
+      })
+    }
+
+    $blocks.list = $blocks.public.concat($blocks.private)
+
     events = await getEvents($relay, [{ kinds: [0, 1, 5, 7, 1063, 1618] }]);
 
     await Promise.all(events.map(async (event) => processEvent(event)))
@@ -364,7 +396,6 @@
     // Make a query every 30 seconds to keep the connection alive
     window.setInterval(async () => {
       events = await getEvents($relay, [{ kinds: [0] }]);
-      //Promise.all(events.map(async (event) => processEvent(event)))
     }, 1000 * 30)
   });
 
@@ -443,19 +474,19 @@
                 />
             {/if}
 
-            {#if followedPosts.length > 0}
-              <Sidescroll 
-                title="People you follow."
-                color="blue"
-                bind:posts={followedPosts}
-              />
-            {/if}
-
             {#if yrVibes.length > 0}
               <Sidescroll 
                 title="Yr vibe."
-                color="red"
+                color="blue"
                 bind:posts={yrVibes}
+              />
+            {/if}
+
+            {#if followedPosts.length > 0}
+              <Sidescroll 
+                title="People you follow."
+                color="red"
+                bind:posts={followedPosts}
               />
             {/if}
           </div>

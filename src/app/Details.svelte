@@ -14,6 +14,7 @@
     postDictionary,
     memberDictionary,
     contentDictionary,
+    vibesDictionary,
     activePost,
     activeSong,
     activeMember,
@@ -62,6 +63,10 @@
     }
     IDs.push(event.content.image)
     IDs.push(event.id)
+
+    $vibesDictionary[event.id]["ids"].forEach(id => {
+      IDs.push(id)
+    })
 
     const e = newDeleteEvent($keys.publicKey, IDs, "deleted by user")
     const signed = signEvent(e, $keys.privateKey)

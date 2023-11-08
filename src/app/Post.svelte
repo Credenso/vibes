@@ -62,7 +62,8 @@
     } else if (postType === "collection") {
       currentlyPlaying = false
       tracks.forEach((id) => {
-        if (song === $contentDictionary[id].url) {
+        const content = $contentDictionary[id]
+        if (content && song === content.url) {
           currentlyPlaying = true
         }
       })
@@ -121,7 +122,7 @@
       </div>
       <section class="about" on:click={setActive}>
         <div class="name">{ post?.content?.name }</div>
-        <div class="artist">{ author?.name || 'Anonymous' }</div>
+        <div class="artist">{ author?.display_name || author?.name || 'Anonymous' }</div>
       </section>
     </div>
   </article> 

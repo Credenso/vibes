@@ -68,6 +68,7 @@
     margin: 1em;
     width: 48px;
     height: 48px;
+    object-fit: cover;
     border-radius: 50%;
   }
 </style>

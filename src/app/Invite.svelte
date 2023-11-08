@@ -7,16 +7,19 @@
 
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
+  import { bytesToHex } from '@noble/hashes/utils';
+  import { sha256 } from '@noble/hashes/sha256';
+
 
   let ruleUnderstander = false
   let code
 
   const makeInvite = async () => {
     const name = Object.keys($members.names).find(key => $members.names[key] === $keys.publicKey)
-    const nonceRequest = await fetch(`http://solar.credenso.cafe/invite?name=${name}`)
+    const nonceRequest = await fetch(`http://solar.credenso.cafe/nonce?name=${name}`)
     const nonce = await nonceRequest.text()
     const pubKey = $keys.publicKey
-    const signedNonce = schnorr.sign(nonce, $keys.privateKey)
+    const signedNonce = schnorr.sign(bytesToHex(sha256(nonce)), $keys.privateKey)
     const hexSig = b4a.toString(signedNonce, 'hex')
 
     const inviteCode = await fetch(`http://solar.credenso.cafe/invite?name=${name}`, {
@@ -27,14 +30,14 @@
       body: JSON.stringify({ pubKey, hexSig })
     })
 
-    code = await inviteCode.json()
+    code = await inviteCode.text()
 
-    console.log('code', code)
-    const domain = "http://solar.credenso.cafe/vibes/"
-    console.log('invite', `${domain}?invite=${code}&member=${name}`)
-    generateQR(`${domain}?invite=${code}&member=${name}`)
+    //const domain = "http://solar.credenso.cafe/vibes/"
+    const domain = "http://localhost:5173/"
+    const url = `${domain}?invite=${code}&member=${name}` 
+    console.log(url)
+    generateQR(url)
     const container = document.querySelector('main')
-    console.log('section', container)
     container.scrollTo(0,0)
   }
 
@@ -43,7 +46,10 @@
     const qr = qrcode(0, 'L');
     qr.addData(url)
     qr.make()
-    document.getElementById('qr').innerHTML = qr.createImgTag(10);
+    document.getElementById('qr').innerHTML = qr.createImgTag(10)
+    const elem = document.getElementById('qr').querySelector('img')
+    elem.style.borderRadius = "1em";
+    elem.style.margin = "auto";
   }
 </script>
 
@@ -76,7 +82,7 @@
 </p>
 {#if code === undefined}
 <label id='ok' for="IGetIt">ya mom I get it</label>
-<input type="checkbox" id="IGetIt" bind:value={ruleUnderstander}>
+<input type="checkbox" id="IGetIt" bind:checked={ruleUnderstander}>
 <br>
 <br>
 <button on:click={makeInvite} disabled={!ruleUnderstander}>Generate!</button>
@@ -106,6 +112,11 @@
     margin: 1em;
     margin-bottom: 0;
     background-color: #EEEEEE;
+  }
+
+  #qr * {
+    border-radius: 1em;
+    margin: auto;
   }
 
   small {

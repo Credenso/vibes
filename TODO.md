@@ -57,11 +57,11 @@
 
 - [x] Direct Messages - L
 
-- [ ] upgrade upload screen - M
+- [ ] upgrade upload screen - L
+    - [x] overhaul UI - S
+    - [x] post preview - S 
     - [ ] resize uploaded images - M
     - [x] upload preview - S 
-    - [ ] post preview - S 
-    - [ ] overhaul UI - S
 
 - [ ] Polish Profile Screen - M
 

@@ -263,7 +263,13 @@
       //console.log('vibes', $vibesDictionary)
     } else if (event.kind === 1063) {
       // Content (file)
-      event.url = `${staticEndpoint}${event.tags.find(t => t[0] === "url")[1]}`
+      const urltag = event.tags.find(t => t[0] === "url")[1]
+      if (urltag.startsWith('http')) {
+        event.url = urltag
+      } else {
+        event.url = `${staticEndpoint}${urltag}`
+      }
+
       $contentDictionary[event.id] = event
     } else if (event.kind === 1618) {
       // Post
@@ -278,8 +284,14 @@
       $postDictionary[event.id] = event
 
       // The filter keeps us from rendering duplicates
-      recentPosts = [event, ...recentPosts.filter(p => p.id !== event.id).slice(0,10)]
+      //recentPosts = [event, ...recentPosts.filter(p => p.id !== event.id).slice(0,10)]
     }
+  }
+
+  const updateRecent = () => {
+    recentPosts = Object.values($postDictionary).sort((p1, p2) => {
+      return p1.created_at < p2.created_at
+    }).slice(0,10)
   }
 
   const updateFollows = () => {
@@ -337,6 +349,7 @@
     })
 
 
+    updateRecent()
     updateFollows()
     updateVibes()
 
@@ -526,11 +539,13 @@
               bind:posts={recentPosts}
               />
 
-              <Sidescroll 
-                title="People you follow."
-                color="orange"
-                bind:posts={followedPosts}
-                />
+              {#if followedPosts.length > 0}
+                <Sidescroll 
+                  title="People you follow."
+                  color="orange"
+                  bind:posts={followedPosts}
+                  />
+              {/if}
 
                 {#if yrVibes.length > 0}
                   <Sidescroll 

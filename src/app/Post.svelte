@@ -52,14 +52,14 @@
   })
 
   activeSong.subscribe((song) => {
-    if (postType === "single") {
+    if (song && postType === "single") {
       if (song && song === $contentDictionary[post?.content?.audio]?.url) {
         currentlyPlaying = true
       } else {
         currentlyPlaying = false
       }
 
-    } else if (postType === "collection") {
+    } else if (song && postType === "collection") {
       currentlyPlaying = false
       tracks.forEach((id) => {
         if (song === $contentDictionary[id].url) {

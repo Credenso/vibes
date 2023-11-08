@@ -1,5 +1,5 @@
 <script>
-  import { postDictionary, keys } from '../lib/stores'
+  import { postDictionary, contentDictionary, keys } from '../lib/stores'
 
   export let content
   let options = []
@@ -37,18 +37,33 @@
     search = ''
   }
 
+  const unfocus = (e) => {
+    //e.preventDefault()
+    console.log('e', e)
+    if (options.length > 0) {
+      window.setTimeout(() => options = [], 500)
+    }
+  }
+
+  const select = (option, e) => {
+    console.log('option', option)
+    selected = option
+    console.log('post', $postDictionary[option])
+  }
+
 </script>
 
 {#if selected === undefined}
   <div class="autocomplete">
-    <input on:input={autocomplete} on:blur={() => window.setTimeout(() => options = [], 10)} type="text" id="formSong" name="song" bind:value={search} placeholder="Post name"/>
+    <input on:input={autocomplete} on:blur={unfocus} type="text" id="formSong" name="song" bind:value={search} placeholder="Post name"/>
     {#if options?.length > 0}
       <ul>
-        {#each options as option}
-          <li on:click={() => selected = option}>{$postDictionary[option].content.name}</li>
+        {#each options.map(opt => [$postDictionary[opt].content, opt]) as option}
+          <li on:click={(e) => select(option[1], e)}><img src="{$contentDictionary[option[0].image].url}"/> {option[0].name}</li>
         {/each}
       </ul>
     {/if}
+    <div on:click={reset}>x</div>
   </div>
 {:else}
   <section class="selection">
@@ -63,6 +78,7 @@
     position: relative;
     display: inline-block;
     width: fit-content;
+    display: flex;
   }
 
   h1 {
@@ -89,7 +105,6 @@
     position: absolute;
     z-index: 100;
     margin: 0;
-    padding: 1em;
     width: inherit;
     border: 1px solid #ddd;
     background-color: #ddd;
@@ -97,5 +112,12 @@
   }	
   li {
     font-size: 1.1em;
+    padding: 1em;
+  }
+
+  li img {
+    height: 1.5em;
+    border-radius: 10%;
+    display: inline;
   }
 </style>

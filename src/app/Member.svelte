@@ -29,6 +29,12 @@
   // For hashing the privateKey
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
+  import { bytesToHex } from '@noble/hashes/utils';
+  import { sha256 } from '@noble/hashes/sha256';
+
+
+
+  import { onMount } from 'svelte'
 
   $: editable = ($keys.publicKey === $activeMember)
   let editing = false
@@ -195,8 +201,19 @@
     // If there are files, upload them
     if (files.length > 0) {
 
+      // TODO: This pattern shows up enough times to encapsulate it
+      const pubKey = $keys.publicKey
+      const name = Object.keys($members.names).find(key => $members.names[key] === pubKey)
+      const nonceRequest = await fetch(`http://solar.credenso.cafe/nonce?name=${name}`)
+      const nonce = await nonceRequest.text()
+      const signedNonce = schnorr.sign(bytesToHex(sha256(nonce)), $keys.privateKey)
+      const hexSig = b4a.toString(signedNonce, 'hex')
+
+      formData.append('public_key', pubKey)
+      formData.append('sig', hexSig)
+
       // Here's an upload to the station
-      const response = await fetch("http://solar.credenso.cafe/upload", {
+      const response = await fetch(`http://solar.credenso.cafe/upload?name=${name}`, {
         method: "POST",
         body: formData
       })
@@ -261,8 +278,9 @@
 
     if (invite && metadata?.nip05 === undefined ) {
       const pubKey = $keys.publicKey
-      const signedInvite = schnorr.sign(invite.code, $keys.privateKey)
-      const hexSig = b4a.toString(invite.code, 'hex')
+      console.log('invite', invite)
+      const signedInvite = schnorr.sign(bytesToHex(sha256(invite.code)), $keys.privateKey)
+      const hexSig = b4a.toString(signedInvite, 'hex')
 
       // TODO: Adapt this to other domain names
       const results = await fetch(`http://solar.credenso.cafe/register?name=${metadata.name}`, {
@@ -275,15 +293,59 @@
 
       console.log('registration complete')
       const json_keys = JSON.parse(await results.text())
-      metadata.drive = json_keys.driveKey
-      metadata.log = json_keys.logKey
-      metadata.nip05 = json_keys.nip05
+      metadata.nip05 = `${json_keys.name}@${json_keys.station}`
 
       let profileEvent = newProfileEvent(metadata, $keys.publicKey)
       profileEvent = signEvent(profileEvent, $keys.privateKey)
       publish(profileEvent)
     }
   }
+
+  const inputImageListeners = () => {
+    if (editing) {
+      window.setTimeout(() => {
+        const avatarInput = document.getElementById('avatar')
+        avatarInput.addEventListener('input', () => {
+          const imageFile = avatarInput.files[0]
+          const reader = new FileReader()
+          reader.addEventListener(
+            'load',
+            () => {
+              avatar = reader.result
+            },
+            false,
+          );
+
+          if (imageFile.size < 1000000) {
+            reader.readAsDataURL(imageFile);
+          } else {
+            alert("avatar file size must stay under 1MB")
+          }
+        })
+
+        const bannerInput = document.getElementById('banner')
+        bannerInput.addEventListener('input', () => {
+          const imageFile = bannerInput.files[0]
+          const reader = new FileReader()
+          reader.addEventListener(
+            'load',
+            () => {
+              banner = `url(${reader.result})`
+            },
+            false,
+          );
+
+          if (imageFile.size < 1000000) {
+            reader.readAsDataURL(imageFile);
+          } else {
+            alert("banner file size must stay under 1MB")
+          }
+        })
+      }, 100)
+    }
+  }
+
+  $: editing, inputImageListeners()
 </script>
 
 {#if metadata}
@@ -293,14 +355,11 @@
   {#if editing}
     <form on:submit|preventDefault={save}>
       <input type="hidden" name="pubkey" value={$keys.publicKey} />
-        <div class="banner formEntry" style={`background-image: ${banner || "inherit"}`} >
-        <img class="pic" src="{ avatar || "profile_photo.png" }" alt="default profile picture" />
+      <div on:click={() => document.getElementById('banner').click()} class="banner formEntry" style={`background-image: ${banner || "inherit"}`} >
+        <img on:click={() => document.getElementById('avatar').click()} class="pic" src="{ avatar || "profile_photo.png" }" alt="default profile picture" />
         <input class="display_name" type="text" name="display_name" id="display_name" bind:value={metadata.display_name} />
-        {#if metadata.nip05}
-          <span class="editPic" on:click={() => picMenu = !picMenu}>📷</span>
-        {/if}
       </div>
-      <div class="hidden" class:picMenu>
+      <div class="hidden">
         <div class="formEntry">
           <label for="avatar">Avatar</label>
           <input type="file" id="avatar" name="avatar" bind:files bind:value={metadata.avatar} />
@@ -405,7 +464,7 @@
       <hr>
       <p class="recent">Recent Posts</p>
       <div class="posts">
-        {#each posts.reverse() as id (id)}
+        {#each posts.slice(0,10) as id (id)}
           <Post
             postId="{id}"
             image="{imageFromPost(id)}"
@@ -444,6 +503,7 @@
 
   td {
     text-align: left;
+    width: 100%;
     max-width: min(32em, 66vw);
     padding-right: 0.5em;
     padding-left: 0.5em;
@@ -471,15 +531,6 @@
     display: block;
   }
 
-  .editPic {
-    position: relative;
-    align-self: end;
-    background-color: #EEEEEE;
-    border-radius: 0.25em;
-    padding-left: 3px;
-    padding-right: 3px;
-  }
-
   .formEntry {
     display: flex;
     align-items: center;
@@ -504,7 +555,9 @@
   .pic {
     box-shadow: 0px 0px 5px black;
     border-radius: 50%;
-    width: 72px;
+    max-width: 72px;
+    height: 72px;
+    object-fit: cover;
   }
 
   .actions {

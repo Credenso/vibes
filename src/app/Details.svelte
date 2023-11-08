@@ -70,12 +70,21 @@
   }
 
   const closeModal = () => {
-    $modal = undefined
+    tab = "about"
+    if ($modal) {
+      $modal = undefined
+    }
     $activePost = undefined
     postType = undefined
+    tracks = undefined
     deleting = false
-    tab = "about"
   }
+
+  modal.subscribe(activeModal => {
+    if (activeModal === undefined) {
+      closeModal()
+    }
+  })
 
   const goTo = (post_id) => {
     closeModal()
@@ -146,24 +155,40 @@
       <div class="delete">
         {#if deleting}
           <div on:click={deletePost}>✔️</div>
-          <p>Are you sure?</p>
-          <div on:click={() => deleting = false}>✖️</div>
-        {:else}
-          <div on:click={() => deleting = true}>✖️</div>
+          <p>Delete this post?</p>
         {/if}
+        <div on:click={() => deleting = !deleting}>✖️</div>
       </div>
     {/if}
     <p class="header">{event.content.name}</p>
     <a class="subtitle" on:click={() => visit(event.pubkey)}><img class="micro" src="{$contentDictionary[author?.avatar]?.url || "profile_photo.png"}"/> {author?.name} - posted {new Date(event.created_at * 1000).toDateString()}</a> 
     <img src="{$contentDictionary[event.content.image].url}" alt="img"/>
-    {#if postType === "collection"}
-      <div class="actions">
-        <div class:activeTab={tab === "about"} on:click={() => tab = "about"}>About</div>
+    <div class="actions">
+      <div class:activeTab={tab === "about"} on:click={() => tab = "about"}>About</div>
+      {#if postType === "collection"}
         <div class:activeTab={tab === "tracklist"} on:click={() => tab = "tracklist"}>Tracklist</div>
-      </div>
-    {/if}
+      {/if}
+      {#if event.content.lyrics?.length > 0 }
+        <div class:activeTab={tab === "lyrics"} on:click={() => tab = "lyrics"}>Lyrics</div>
+      {/if}
+    </div>
     {#if tab === "about"}
       <p class="description">{event.content.description}</p>
+    {:else if tab === "lyrics"}
+      {#if tracks?.length > 0}
+        {#each tracks as track_id, i}
+          <div class="hidden" class:show={$activeSong === $contentDictionary[track_id].url}>
+            <b>{event.content.names[i]}</b>
+            {#if event.content.lyrics[i]?.length > 0}
+              <p class="description">{event.content.lyrics[i]}</p>
+            {:else}
+              <p class="description">No lyrics for this song!</p>
+            {/if}
+          </div>
+        {/each}
+      {:else}
+        <p class="description">{event.content.lyrics[0]}</p>
+      {/if}
     {:else if tab === "tracklist"}
       <table>
         {#each tracks as track_id, i}
@@ -240,6 +265,7 @@
     border-radius: 50%;
     display: inline;
     height: 1rem;
+    width: 1rem;
     margin: 0;
   }
 
@@ -259,6 +285,7 @@
     display: flex;
     flex-direction: row;
     justify-content: start;
+    gap: 1em;
   }
 
   .activeTab {
@@ -292,6 +319,14 @@
 
   tr.nowPlaying {
     background: #AACCFF;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .show {
+    display: block;
   }
 
   td img {

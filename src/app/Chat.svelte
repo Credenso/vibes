@@ -47,7 +47,7 @@
     const avatarURL = (pubkey) => {
         const member = $memberDictionary[pubkey]
         if (member && member.avatar) {
-            return $contentDictionary[member.avatar].url
+            return $contentDictionary[member.avatar]?.url
         } else {
             return "profile_photo.png"
         }
@@ -367,6 +367,8 @@
 
     .profile img {
         height: 1.5em;
+        width: 1.5em;
+        object-fit: cover;
         border-radius: 50%;
         margin: 0.5em;
     }

@@ -22,6 +22,7 @@
   let results = {}
 
   $: relevantTags = tags.filter(t => searchScore(t,search) >= 1) || []
+  $: relevantTags, mostPopular()
 
   $: results = relevantTags.reduce((acc, tag) => {
     return { ...acc, [tag]: getRelevantPosts(tag) }
@@ -29,7 +30,9 @@
 
   const getRelevantPosts = (search) => {
     let scores = {}
-    Object.keys($vibesDictionary).forEach(post => {
+    Object.keys($vibesDictionary)
+      .filter(k => k !== "ids" && k !== "keys")
+      .forEach(post => {
       const score = $vibesDictionary[post][search]?.length
       if (score) {
         scores[post] = score
@@ -37,20 +40,23 @@
     })
 
     const sortedResults = Object.keys(scores).sort((k1, k2) => scores[k1] < scores[k2])
-    return sortedResults.map(id => $postDictionary[id])
+
+    // Not sure why some ids come back undefined... undeleted vibes?
+    return sortedResults.map(id => $postDictionary[id]).filter(p => p !== undefined)
   }
 
   const mostPopular = () => {
     let pop = {}
     Object.values($vibesDictionary)
       .forEach(post => {
-        Object.keys(post).forEach(vibe => { 
+        Object.keys(post)
+          .filter(k => k !== "ids" && k !== "keys")
+          .forEach(vibe => { 
           pop[vibe] = (pop[vibe] || 0) + post[vibe].length 
         })
       })
-    console.log('pop', pop)
     popularity = pop
-    popularTags = Object.keys(pop).sort((k1,k2) => pop[k1] < pop[k2])
+    popularTags = Object.keys(pop).sort((k1,k2) => pop[k1] < pop[k2]).filter(k => pop[k] > 1)
   }
 </script>
 
@@ -63,12 +69,15 @@
     />
 {/each}
 {#if relevantTags.length === 0}
-  <p class="title">No results for {search}!</p>
+  {#if search}
+    <p class="title">No results for {search}!</p>
+  {:else}
+    <p class="title">No results!</p>
+  {/if}
   <p>Try one of these...</p>
   {#each popularTags as tag}
     <p class="vibe" on:click={() => search = tag} style={`font-size: ${Math.log(1 + popularity[tag])}em`}>~{tag}</p>
   {/each}
-  <button on:click={mostPopular}>What's cool?</button>
 {/if}
 
 <style>

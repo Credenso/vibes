@@ -42,6 +42,12 @@ export const secondsToTime = (seconds) => {
     return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
+export const within30Days = (timestamp) => {
+    const now = Math.round(Date.now() / 1000)
+    const diff = timestamp - now
+    return (diff < 2592000)
+}
+
 // Implementation of Smith-Waterman algorithm for gene similarity
 // sourced from https://github.com/anthonyvittoria/smith-waterman-js/tree/master
 export const alignment = (s1, s2) => {

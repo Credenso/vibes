@@ -3,6 +3,7 @@
     memberDictionary,
     contentDictionary,
     activeMember,
+    modal,
     chats,
     keys,
     relay
@@ -20,6 +21,7 @@
   let comments = []
   let newMessage = ""
   let replyingTo = undefined
+  let friend = undefined
 
   const scroll = () => {
     const chatBox = document.querySelector('.chat')
@@ -30,21 +32,42 @@
     }
   }
 
-  onMount(() => {
-    // Adds a listener for the Enter button to make a comment.
-    document.onkeydown = async (e) => {
-      e = e || window.event;
-      switch (e.which || e.keyCode) {
-        case 13 : 
-          await handleComment(e)
-          break;
+  //onMount(() => {
+  //  // Adds a listener for the Enter button to make a comment.
+  //  document.onkeydown = async (e) => {
+  //    e = e || window.event;
+  //    switch (e.which || e.keyCode) {
+  //      case 13 : 
+  //        await handleComment(e)
+  //        break;
+  //    }
+  //  }
+  //})
+
+  const readyMessage = (e) => {
+    const key = (e) => {
+      if (e.code === "Enter") {
+        handleComment(e)
       }
     }
-  })
+
+    e.target.addEventListener('keydown', key)
+    e.target.addEventListener('blur', () => {
+      e.target.removeEventListener('keydown', key)
+    })
+  }
+
 
   activeMember.subscribe(id => {
+    friend = $memberDictionary[id]
     chatLog = $chats[id]
     scroll()
+  })
+
+  modal.subscribe(type => {
+    if (type === "direct") {
+      scroll()
+    }
   })
 
   chats.subscribe(dict => {
@@ -66,10 +89,22 @@
       uploading = false
     } 
   }
+
+  const avatarURL = (pubkey) => {
+    const member = $memberDictionary[pubkey]
+    if (member && member.avatar) {
+      return $contentDictionary[member.avatar]?.url
+    } else {
+      return "profile_photo.png"
+    }
+  }
 </script>
 
-<div class="header">
-   <h1 class="title">Messages</h1>
+<div class="header" on:click={() => $modal = "member"}>
+  {#if friend}
+  <img src={avatarURL($activeMember)} />
+  <h1 class="title">{friend.display_name || friend.name}</h1>
+  {/if}
 </div>
 <div class="chat">
   {#if chatLog}
@@ -86,30 +121,28 @@
   {/if}
 </div>
 
-<form on:submit={handleComment} class="chatBox me">
-  {#if uploading}
-    <div class="deets">
-      <p>Posting...</p>
-    </div>
-  {:else}
-    <div class="deets">
-      <b>{$memberDictionary[$keys?.publicKey]?.name || "NPC"}</b><hr><p>{prettyDate(new Date())}</p>
-    </div>
-    <div class="deets">
-      <textarea name="comment" bind:value="{newMessage}" />
-      <button type="submit">Comment</button>
-    </div>
-  {/if}
+<form id="msgForm" class="msgForm" >
+  <input on:focus={readyMessage} autocomplete="off" type="text" placeholder="Send message" class="input" id="inputBox" bind:value={newMessage}/>
 </form>
 
 <style>
   .header {
     position: fixed;
+    font-size: 1.5em;
     top: 0;
     left: 0;
     height: 4rem;
     width: 100%;
     background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .header img {
+    height: 48px;
+    border-radius: 50%;
+    flex-grow: 0;
   }
 
   .title {
@@ -146,11 +179,11 @@
 
   .chat {
     margin-top: 2em;
-    margin-bottom: 4em;
-    height: 56vh;
+    height: 62vh;
     display: flex;
     flex-direction: column;
     overflow-y: scroll;
+    scroll-behavior: smooth;
   }
 
   .me {
@@ -200,10 +233,6 @@
     background-color: #028a9b33;
   }
 
-  .header {
-    font-size: 1.5em;
-  }
-
   .deets {
     display: flex;
     justify-content: space-between;
@@ -221,4 +250,29 @@
     text-align: left;
     font-size: 1.1;
   }
+
+  .msgForm {
+    width: 100%;
+    padding: 1em;
+    margin: auto;
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+
+  .msgForm select {
+    flex-grow: 0;
+    border-radius: 0.25em;
+    padding: 0.25em;
+  }
+
+  .msgForm input {
+    flex-grow: 1;
+    background-color: #FFFFFF;
+    padding: 0.5em;
+    border: 2px solid #636B71;
+    border-radius: 1em;
+  }
+
 </style>

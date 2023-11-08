@@ -22,7 +22,10 @@
 
   const sortedVibes = (vibesDict) => {
     if (vibes) {
-      const sorted = Object.keys(vibes).sort((v1,v2) => {
+      const sorted = Object
+        .keys(vibes)
+        .filter(k => k !== "ids" && k !== "keys") // Not vibes
+        .sort((v1,v2) => {
         if (vibes[v1].length > vibes[v2].length) {
           return -1
         } else {

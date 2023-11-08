@@ -237,6 +237,16 @@
         const who = (message.pubkey === $keys.publicKey) ? "You: " : "Them: "
         return `${who}${message.text.substring(0,20)}...`
     }
+
+    const getName = (pubkey) => {
+        const member = $memberDictionary[pubkey]
+        if (member) {
+            return member.display_name || member.name
+        } else {
+            return 'NPC'
+        }
+    }
+
 </script>
 
 <div class="panelSelector">
@@ -260,7 +270,7 @@
                         {:else}
                             <img src="profile_photo.png" alt="profile_photo"/>
                         {/if}
-                        <b>{$memberDictionary[message?.pubkey]?.display_name || 'NPC'}</b>
+                        <b>{getName(message?.pubkey)}</b>
                     </div>
                     <p>{message.content}</p>
                     <small class="timestamp">{prettyDate(new Date(message.created_at * 1000))}</small>
@@ -294,7 +304,7 @@
                         {:else}
                             <img src="profile_photo.png" alt="profile_photo"/>
                         {/if}
-                        <b>{$memberDictionary[person]?.display_name || 'NPC'}:</b>
+                        <b>{getName(person)}:</b>
                     </div>
                     <p>{latestMessage(person)}</p>
                     <hr/>

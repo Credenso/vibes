@@ -57,41 +57,22 @@
 
 - [x] Direct Messages - L
 
-- [ ] upgrade upload screen - L
+- [x] upgrade upload screen - L
     - [x] overhaul UI - S
     - [x] post preview - S 
-    - [ ] resize uploaded images - M
+    - [x] resize uploaded images - M
     - [x] upload preview - S 
 
-- [ ] Polish Profile Screen - M
+- [x] Polish Profile Screen - M
 
 - [ ] Other categories - M
     - [ ] Most popular (unique votes in last 30 days) - S
     - [x] artists you follow - S
 
-# Hypercore Integration
-- [x] Pull events from Hypercore
-- [x] Login flow with Solar
-
-- [ ] Hypercore Chats
-
-- [ ] Download followed Hypercores
-
-- [x] Member classes (Admin, creator, NPC)
-    - [x] Registration 
-    - [x] permissions for
-        - [x] commenting
-        - [x] chatting
-        - [x] following
-        - [x] voting
-        - [x] uploading
-        - [x] inviting
-
-- [x] Basic groupchat - S
+- [ ] Delete connected vibes - S
 
 # Next Steps - Polish
 - [ ] Better Image Loading - L
-    - [ ] Remote Solar Signing?
     - [ ] Blurhash images - M
 
 - [x] figure out why subscription is sketchy

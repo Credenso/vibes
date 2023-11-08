@@ -52,14 +52,14 @@
   })
 
   activeSong.subscribe((song) => {
-    if (song && postType === "single") {
+    if (postType === "single") {
       if (song && song === $contentDictionary[post?.content?.audio]?.url) {
         currentlyPlaying = true
       } else {
         currentlyPlaying = false
       }
 
-    } else if (song && postType === "collection") {
+    } else if (postType === "collection") {
       currentlyPlaying = false
       tracks.forEach((id) => {
         if (song === $contentDictionary[id].url) {
@@ -75,9 +75,6 @@
     window.setTimeout(() => {
       $modal = 'details'
     }, 200)
-  }
-
-  const addToQueue = (song_id) => {
   }
 
   const play = () => {

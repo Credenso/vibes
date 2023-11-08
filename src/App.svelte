@@ -30,6 +30,7 @@
   } from './lib/nostr'
 
   import { getSong } from './lib/ipfs'
+  import { within30Days } from './lib/util'
 
   import { nip42 } from 'nostr-tools'
 
@@ -66,6 +67,7 @@
   let searchOpen = false
 
   let recentPosts = []
+  let topPosts = []
   let followedPosts = []
   let yrVibes= []
   let tags = []
@@ -201,23 +203,36 @@
       // list of all tags available in the app
       if (!tags.includes(reaction)) tags.push(reaction)
 
-      const vibes = $vibesDictionary[post_id]
+      let vibes = $vibesDictionary[post_id]
+
       // If we already have a list for the reactions
       if (vibes && vibes[reaction]) {
         // Filter is necessary to prevent duplication from different sources
         vibes[reaction] = [...vibes[reaction].filter(r => r !== event.pubkey), event.pubkey]
-        $vibesDictionary[post_id] = vibes
 
       // If we have a dictionary for the post, but
-      // this is the first reaction of the type
+      // this is the first reaction of the type...
       } else if (vibes) {
         vibes[reaction] = [event.pubkey]
-        $vibesDictionary[post_id] = vibes
 
       // Otherwise, we need to create the entry
       } else {
-        $vibesDictionary[post_id] = { [reaction]: [event.pubkey] }
+        vibes = { 
+          [reaction]: [event.pubkey],
+          "keys": new Set(),
+          "ids": []
+        }
       }
+
+      // We keep track of the keys for counting unique voters,
+      if (within30Days(event.created_at)) {
+        vibes["keys"].add(event.pubkey)
+      }
+
+      // and IDs for later deletion
+      vibes["ids"].push(event.id)
+
+      $vibesDictionary[post_id] = vibes
       //console.log('vibes', $vibesDictionary)
     } else if (event.kind === 1063) {
       // Content (file)
@@ -240,6 +255,7 @@
       }
 
       $postDictionary[event.id] = event
+      recentPosts = [...recentPosts.slice(0,10), event]
     }
   }
 
@@ -247,6 +263,14 @@
     recentPosts = Object.values($postDictionary).sort((p1, p2) => {
       return p1.created_at < p2.created_at
     }).slice(0,10)
+  }
+
+  const updateTop = () => {
+    const topKeys = Object.keys($vibesDictionary).sort((k1,k2) => {
+      return $vibesDictionary[k1]['keys'].size < $vibesDictionary[k2]['keys'].size
+    })
+
+    topPosts = topKeys.slice(0,10).map(k => $postDictionary[k]).filter(p => p !== undefined)
   }
 
   const updateFollows = () => {
@@ -305,6 +329,7 @@
 
 
     updateRecent()
+    updateTop()
     updateFollows()
     updateVibes()
 
@@ -327,6 +352,9 @@
       }
       if (event.kind === 3) {
         updateFollows()
+      }
+      if (event.kind === 7) {
+        updateTop()
       }
       if (event.kind === 1618) {
         updateRecent()
@@ -399,29 +427,37 @@
           <Loading />
         {/if}
 
-        <section class="is-preload">
+        <section class="main is-preload">
           <div class="hidden" class:visible={page === "main"}>
             <Sidescroll 
               title="Recent posts."
               color="red"
               bind:posts={recentPosts}
+            />
+
+            {#if topPosts.length > 0}
+              <Sidescroll 
+                title="Top posts."
+                color="orange"
+                bind:posts={topPosts}
+                />
+            {/if}
+
+            {#if followedPosts.length > 0}
+              <Sidescroll 
+                title="People you follow."
+                color="blue"
+                bind:posts={followedPosts}
               />
+            {/if}
 
-              {#if followedPosts.length > 0}
-                <Sidescroll 
-                  title="People you follow."
-                  color="orange"
-                  bind:posts={followedPosts}
-                  />
-              {/if}
-
-                {#if yrVibes.length > 0}
-                  <Sidescroll 
-                    title="Yr vibe."
-                    color="blue"
-                    bind:posts={yrVibes}
-                    />
-                {/if}
+            {#if yrVibes.length > 0}
+              <Sidescroll 
+                title="Yr vibe."
+                color="red"
+                bind:posts={yrVibes}
+              />
+            {/if}
           </div>
           <div class="hidden" class:visible={page === "upload"}>
             <Upload bind:page bind:keys={$keys} />
@@ -451,7 +487,7 @@
     overflow-x: hidden;
   }
 
-  section {
+  section.main {
     min-height: 100vh;
     transition: opacity 0.2s ease-in-out;
   }

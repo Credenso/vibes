@@ -378,7 +378,7 @@
   {:else}
     <div class="banner" style={`background-image: ${banner || "inherit"}`} >
       <img class="pic" src="{ avatar || "profile_photo.png" }" alt="profile picture" />
-      <b class="name">{metadata.display_name}</b>
+      <b class="name">{metadata.display_name || metadata.name }</b>
     </div>
     <table>
       <tr>

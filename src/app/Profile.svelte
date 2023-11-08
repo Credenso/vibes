@@ -6,7 +6,6 @@
     contentDictionary,
     memberDictionary,
     activeMember, 
-    hyper,
     keys, 
     modal
   } from '../lib/stores'
@@ -15,17 +14,6 @@
   let avatar
   let avatarURL
 
-  const hyperImage = async (id) => {
-    const event = $contentDictionary[id]
-    const mime = event.tags.find(t => t[0] === "m")[1]
-    const content = await $hyper.drive.exists(event.content)
-    if (await content) {
-      return `data:${mime};base64,${b4a.toString(content, 'base64')}`
-    } else {
-      return undefined
-    }
-  }
-
   const updateAvatar = async (profile) => {
     if (profile?.avatar) {
       const address = $contentDictionary[profile.avatar]?.url
@@ -33,13 +21,7 @@
         avatarURL = address
         const path = avatarURL.split('/')
         const filename = path[path.length - 1]
-        const hyperfile = await $hyper.drive?.exists(filename)
-        if (hyperfile) {
-          console.log('avatar hyperfile', hyperfile)
-          avatar = await hyperImage(profile.avatar)
-        } else {
-          avatar = address
-        }
+        avatar = address
       }
     }
   }

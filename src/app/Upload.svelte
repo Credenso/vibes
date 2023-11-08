@@ -103,7 +103,6 @@
     const publish = (e) => {
       console.log('publishing event', e)
       publishEvent($relay, e)
-      //$hyper.log.append(JSON.stringify(e))
     }
 
     // This is our function for uploading to a server

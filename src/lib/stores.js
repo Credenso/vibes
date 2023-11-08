@@ -24,4 +24,3 @@ export const relay = writable(undefined);
 export const modal = writable(undefined);
 export const memberClass = writable("npc");
 export const keys = writable({});
-export const hyper = writable({});

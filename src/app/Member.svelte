@@ -16,7 +16,6 @@
     contentDictionary, 
     activeMember,
     keys, 
-    hyper, 
     modal, 
     members,
     contacts,
@@ -66,30 +65,13 @@
     }
   })
 
-  const hyperImage = async (id) => {
-    const event = $contentDictionary[id]
-    const mime = event.tags.find(t => t[0] === "m")[1]
-    const content = await $hyper.drive.get(event.content)
-    if (await content) {
-      return `data:${mime};base64,${b4a.toString(content, 'base64')}`
-    } else {
-      return undefined
-    }
-  }
-
   const updateAvatar = async (profile) => {
     if (profile?.avatar) {
       const address = $contentDictionary[profile.avatar]?.url
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
-        //const hyperfile = await $hyper.drive.exists(filename)
-        //if (hyperfile) {
-        //  console.log('avatar hyperfile', hyperfile)
-        //  avatar = await hyperImage(profile.avatar)
-        //} else {
-          avatar = address
-        //}
+        avatar = address
       }
     }
   }
@@ -100,13 +82,7 @@
       if (address) {
         const path = address.split('/')
         const filename = path[path.length - 1]
-        //const hyperfile = await $hyper.drive.exists(filename)
-        //if (hyperfile) {
-        //  console.log('banner hyperfile', hyperfile)
-        //  banner = `url(${await hyperImage(profile.banner)})`
-        //} else {
-          banner = `url(${address})`
-        //}
+        banner = `url(${address})`
       }
     }
   }
@@ -175,13 +151,8 @@
 
   const publish = (e) => {
     publishEvent($relay, e)
-
-    // TODO: Reintegrate Hyperdrive
-    //$hyper.log.append(JSON.stringify(e))
   }
 
-  // This function pushes the modified profile data to the 
-  // station and the hyperlog
   const save = async (e) => {
     e.preventDefault()
     saving = true
@@ -230,13 +201,6 @@
 
         return e
       }))
-
-      // TODO: Reintegrate Hyperdrive
-      //// This uploads a copy of all the files to our hyperdrive
-      //await Promise.all(Array.from(files).map(async f => {
-      //  const fileBuffer = await f.arrayBuffer()
-      //  await $hyper.drive.put(f.name.replaceAll(/[#? ]/g, ""), fileBuffer)
-      //}))
 
       // Make sure the filepath is just a name
       if (metadata?.avatar?.includes('fakepath')) {

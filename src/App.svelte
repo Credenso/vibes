@@ -17,8 +17,6 @@
   import Direct from './app/Direct.svelte'
   import Invite from './app/Invite.svelte'
 
-  //import Hyperdrive from 'hyperdrive'
-
   // Utilities
   import { onMount, onDestroy } from 'svelte'
   import { 
@@ -35,8 +33,6 @@
 
   import { nip42 } from 'nostr-tools'
 
-  //import { makeSwarm, makeRAMStore, makeBrowserStore, makeDrive } from './lib/hyper'
-  
   import b4a from 'b4a'
   import { schnorr } from '@noble/curves/secp256k1';
 
@@ -53,7 +49,6 @@
     activeMember,
     memberClass,
     members,
-    hyper,
     contacts,
     relay
   } from './lib/stores.js'
@@ -67,12 +62,6 @@
   let page = "main"
   let activeWidget = undefined
   let events = []
-
-  //// Hyperdrive stuff
-  //let store
-  //let log
-  //let swarm
-  //let drive
 
   let searchOpen = false
 
@@ -98,37 +87,6 @@
   window.history.replaceState(null, null, url[0]);
 
   let profile = {};
-
-  // TODO: Reintegrate Hypercore
-  // This is a function for turning a profile into
-  // a collection of that person's nostr events
-  //const cloneCore = async (profile) => {
-  //  //if (profile.drive) {
-  //  //  console.log('drive', profile.drive)
-  //  //}
-
-  //  if (profile.log && $hyper.store) {
-  //    let existentData = $hyper.store.get({ key: profile.log })
-
-  //    await existentData.ready()
-
-  //    const discover = $hyper.swarm.join(existentData.discoveryKey)
-  //    const foundPeers = store.findingPeers()
-  //    $hyper.swarm.flush().then(() => foundPeers())
-  //    await discover.flushed()
-
-  //    await existentData.update({ wait: true })
-
-  //    if (existentData.length > 0) {
-  //      console.log('copying existent data.')
-  //      let position = 0
-  //      await $hyper.log.ready()
-  //      for await (const block of existentData.createReadStream({ start: 0, end: existentData.length })) {
-  //        $hyper.log.append(block)
-  //      }
-  //    }
-  //  }
-  //}
 
   // This either generates new keys and saves
   // them to local storage, or just uses the
@@ -262,7 +220,6 @@
       }
       //console.log('vibes', $vibesDictionary)
     } else if (event.kind === 1063) {
-      console.log('loading content', event)
       // Content (file)
       const urltag = event.tags.find(t => t[0] === "url")[1]
       if (urltag.startsWith('http')) {
@@ -350,96 +307,6 @@
     updateRecent()
     updateFollows()
     updateVibes()
-
-    //// Hypercore bootstrap
-    //swarm = await makeSwarm()
-    //store = await makeRAMStore()
-    ////store = await makeBrowserStore('vibes')
-    //drive = await makeDrive(store.namespace('drive'), { name: 'drive' })
-    //log = store.get({ name: 'log' })
-
-    //await drive.ready()
-    //await log.ready()
-
-    //$hyper = { log, swarm, store, drive }
-
-    // TODO: Reintegrate Hypercore
-    //$contacts.forEach(async contact => {
-    //  console.log('contact key', contact)
-    //  const profile = $memberDictionary[contact[1]]
-    //  console.log('profile', profile)
-    //  const hyper = store.namespace(contact)
-    //  const log = hyper.get({ key: profile.log })
-    //  console.log('log wait', profile.log)
-    //  await log.ready()
-    //  console.log('log ready!')
-    //  console.log('log length:', log.length)
-    //  const drive = new Hyperdrive(hyper.namespace('files'), profile.drive)
-    //  console.log('drive wait!', profile.drive)
-    //  await drive.ready()
-    //  console.log('drive ready!')
-    //  for await(const file of drive.entries()) {
-    //    console.log('file!', file)
-    //  }
-    //  //const files = await drive.entries()
-    //})
-
-    //// When someone connects to us via the swarm, generally
-    //// the solar server or someone browsing our profile, we 
-    //// replicate all the data in the core so far.
-    //swarm.on('connection', conn => { 
-    //  console.log('yep, that\'s a connection')
-    //  store.replicate(conn) 
-    //})
-
-    //const discover = swarm.join(log.discoveryKey)
-    //await discover.flushed()
-    //
-    //log.on('append', () => {
-    //  const seq = log.length - 1
-    //  log.get(seq).then(block => {
-    //    let data
-    //    try {
-    //      data = JSON.parse(b4a.toString(block))
-    //      if (data.id) {
-    //        processEvent(data)
-    //      } else {
-    //        // TODO: Create the Hyperdrive with this data
-    //        console.log('hyperlog:', data)
-    //      }
-    //    } catch (SyntaxError) {
-    //      data = b4a.toString(block)
-    //    }
-
-    //    console.log(`Block ${seq} data:`, data)
-    //  })
-    //})
-
-    //await log.append(JSON.stringify({ drive: b4a.toString(drive.key, 'hex') }))
-
-
-    //if (profile) {
-    //  cloneCore(profile)
-    //        .then(async () => {
-    //          console.log('done cloning!')
-    //          if (profile.log) {
-    //            console.log('now we start the session')
-    //            const sessionKey = b4a.toString($hyper.log.key, 'hex')
-    //            const pubKey = $keys.publicKey
-    //            const sig = b4a.toString(schnorr.sign(sessionKey, $keys.privateKey), 'hex')
-
-    //            const results = await fetch("http://solar.credenso.cafe/session", {
-    //              method: "POST",
-    //              headers: {
-    //                "Content-Type": "text/plain"
-    //              },
-    //              body: JSON.stringify({ pubKey, sig, sessionKey })
-    //            })
-
-    //            console.log(await results.text())
-    //          }
-    //        })
-    //}
 
     // Here we get the list of currently registered members
     const membersJSON = await fetch("http://solar.credenso.cafe/.well-known/nostr.json")

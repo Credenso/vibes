@@ -109,7 +109,7 @@
     const uploadToServer = async (formData) => {
       const pubKey = keys.publicKey
       const name = Object.keys($members.names).find(key => $members.names[key] === pubKey)
-      const nonceRequest = await fetch(`http://solar.credenso.cafe/nonce?name=${name}`)
+      const nonceRequest = await fetch(`https://solar.credenso.cafe/nonce?name=${name}`)
       const nonce = await nonceRequest.text()
       const signedNonce = schnorr.sign(bytesToHex(sha256(nonce)), keys.privateKey)
       const hexSig = b4a.toString(signedNonce, 'hex')
@@ -118,7 +118,7 @@
       formData.append('sig', hexSig)
 
       // First, we post all the form data
-      fetch(`http://solar.credenso.cafe/upload?name=${name}`, {
+      fetch(`https://solar.credenso.cafe/upload?name=${name}`, {
       method: "POST",
       body: formData
       })

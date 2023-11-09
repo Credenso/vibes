@@ -16,13 +16,13 @@
 
   const makeInvite = async () => {
     const name = Object.keys($members.names).find(key => $members.names[key] === $keys.publicKey)
-    const nonceRequest = await fetch(`http://solar.credenso.cafe/nonce?name=${name}`)
+    const nonceRequest = await fetch(`https://solar.credenso.cafe/nonce?name=${name}`)
     const nonce = await nonceRequest.text()
     const pubKey = $keys.publicKey
     const signedNonce = schnorr.sign(bytesToHex(sha256(nonce)), $keys.privateKey)
     const hexSig = b4a.toString(signedNonce, 'hex')
 
-    const inviteCode = await fetch(`http://solar.credenso.cafe/invite?name=${name}`, {
+    const inviteCode = await fetch(`https://solar.credenso.cafe/invite?name=${name}`, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain"
@@ -32,8 +32,7 @@
 
     code = await inviteCode.text()
 
-    //const domain = "http://solar.credenso.cafe/vibes/"
-    const domain = "http://localhost:5173/"
+    const domain = "https://solar.credenso.cafe/vibes/"
     const url = `${domain}?invite=${code}&member=${name}` 
     console.log(url)
     generateQR(url)

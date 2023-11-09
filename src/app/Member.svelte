@@ -208,7 +208,7 @@
       // TODO: This pattern shows up enough times to encapsulate it
       const pubKey = $keys.publicKey
       const name = Object.keys($members.names).find(key => $members.names[key] === pubKey)
-      const nonceRequest = await fetch(`http://solar.credenso.cafe/nonce?name=${name}`)
+      const nonceRequest = await fetch(`https://solar.credenso.cafe/nonce?name=${name}`)
       const nonce = await nonceRequest.text()
       const signedNonce = schnorr.sign(bytesToHex(sha256(nonce)), $keys.privateKey)
       const hexSig = b4a.toString(signedNonce, 'hex')
@@ -217,7 +217,7 @@
       formData.append('sig', hexSig)
 
       // Here's an upload to the station
-      const response = await fetch(`http://solar.credenso.cafe/upload?name=${name}`, {
+      const response = await fetch(`https://solar.credenso.cafe/upload?name=${name}`, {
         method: "POST",
         body: formData
       })
@@ -280,7 +280,7 @@
       const hexSig = b4a.toString(signedInvite, 'hex')
 
       // TODO: Adapt this to other domain names
-      const results = await fetch(`http://solar.credenso.cafe/register?name=${metadata.name}`, {
+      const results = await fetch(`https://solar.credenso.cafe/register?name=${metadata.name}`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain"

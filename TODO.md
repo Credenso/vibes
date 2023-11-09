@@ -72,6 +72,10 @@
 - [x] Delete connected vibes - S
 
 # Next Steps - Polish
+- [ ] Allow NPCs to edit keys - S
+
+- [ ] Improve Chatrooms - S
+
 - [ ] Improve Loading - M
     - [ ] Get 10 Recent Posts First - S
     - [ ] Get Profile Info - S

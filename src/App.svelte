@@ -300,7 +300,7 @@
   // processed without further latency
   onMount(async () => {
     // Nostr boostrap
-    $relay = await initRelay('ws://relay.credenso.cafe')
+    $relay = await initRelay('wss://relay.credenso.cafe')
 
     // We need to authenticate
     const sign = async (event) => {
@@ -373,7 +373,7 @@
     updateVibes()
 
     // Here we get the list of currently registered members
-    const membersJSON = await fetch("http://solar.credenso.cafe/.well-known/nostr.json")
+    const membersJSON = await fetch("https://solar.credenso.cafe/.well-known/nostr.json")
     $members = await membersJSON.json()
 
     let sub = $relay.sub([

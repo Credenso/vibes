@@ -153,12 +153,11 @@
             })
 
             await Promise.all(pubchat.map(async (event) => processPubchat(event)))
-
             // Ideally, this should be done by the Solar server
             // Whenever a follow event occurs
-            if (channels.length === 0) {
-                //newChannel()
-            }
+            //if (channels.length === 0) {
+            //    newChannel()
+            //}
 
             // Keepalive
             window.setInterval(async () => {

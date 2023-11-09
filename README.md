@@ -53,4 +53,4 @@ Specific thanks to:
 
 ## Donations
 If you appreciate the work I do, please consider leaving a tip!
-bitcoin: `bc1q9xqp8ar0mylvu90qef4570jt963ymyxfhdc20c`
+- bitcoin: `bc1q9xqp8ar0mylvu90qef4570jt963ymyxfhdc20c`

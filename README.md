@@ -50,3 +50,7 @@ Specific thanks to:
 - [fiatjaf](https://fiatjaf.com/)
 - [Stefan Radu](https://github.com/Stefan-Radu)
 - [Chris Oka](https://github.com/ChristopherOka)
+
+## Donations
+If you appreciate the work I do, please consider leaving a tip!
+bitcoin: `bc1q9xqp8ar0mylvu90qef4570jt963ymyxfhdc20c`

@@ -72,17 +72,27 @@
 - [x] Delete connected vibes - S
 
 # Next Steps - Polish
+- [ ] Improve Loading - M
+    - [ ] Get 10 Recent Posts First - S
+    - [ ] Get Profile Info - S
+    -
 - [ ] Better Image Loading - L
     - [ ] Blurhash images - M
 
+- [ ] Settings Menu - L
+    - [ ] List of Blocks
+    - [ ] Show/Hide NPCs
+    - [ ] Select relay(s)
+
 - [ ] Update permissions on registration - S
+- [ ] Vibes on member profile - S
 - [x] figure out why subscription is sketchy
 - [x] investigate howler.js lib / siriwave
 - [ ] try again with the wave-generator
 - [ ] integrate blurhash
 - [ ] password protection (w/ keypear?)
 - [x] sanitize filenames (#, ?)
-- [ ] better fonts
+- [x] better fonts
 
 - [ ] videos (can this be v1.1?)
 - [ ] Currently listening to (NIP-38)

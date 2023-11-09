@@ -122,6 +122,7 @@
   // TODO: Refactor to make more modular
   const processEvent = async (event) => {
     if ($blocks.list.includes(event.pubkey) && event.kind !== 0) {
+      console.log('blocking event', event)
       return
     }
 
@@ -319,29 +320,35 @@
     // Before getting the events, we get the blockList to avoid processing any posts
     // from people we don't want to hear from (except for basic profile data)
 
-
     // TODO: get other data for the given user
-    const blockList = await getEvents($relay, [{ kinds: [10000], author: [$keys.publicKey], limit: 1 }]);
-    console.log('blockList', blockList)
-    $blocks.public = []
-    blockList[0].tags.forEach(t => {
-      if (t[0] === "p") {
-        $blocks.public.push(t[1])
-      }
-    })
-
-    $blocks.private = []
-    if (blockList[0].content !== "") {
-      const text = await nip04.decrypt($keys.privateKey, member, blockList[0].content)
-      const list = JSON.parse(text)
-      list.forEach(t => {
+    let blockList = await getEvents($relay, [{ kinds: [10000], author: [$keys.publicKey], limit: 1 }]);
+    blockList = blockList.filter(e => e.pubkey === $keys.publicKey)
+    if (blockList.length > 0) {
+      console.log('blockList', blockList)
+      $blocks.public = []
+      blockList[0].tags.forEach(t => {
         if (t[0] === "p") {
-          $blocks.private.push(t[1])
+          $blocks.public.push(t[1])
         }
       })
-    }
 
-    $blocks.list = $blocks.public.concat($blocks.private)
+      $blocks.private = []
+      if (blockList[0].content !== "") {
+        const text = await nip04.decrypt($keys.privateKey, member, blockList[0].content)
+        const list = JSON.parse(text)
+        list.forEach(t => {
+          if (t[0] === "p") {
+            $blocks.private.push(t[1])
+          }
+        })
+      }
+
+      $blocks.list = $blocks.public.concat($blocks.private)
+    } else {
+      $blocks.public = []
+      $blocks.private = []
+      $blocks.list = []
+    }
 
     events = await getEvents($relay, [{ kinds: [0, 1, 5, 7, 1063, 1618] }]);
 
